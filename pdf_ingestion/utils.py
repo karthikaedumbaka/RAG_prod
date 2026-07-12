@@ -1,45 +1,14 @@
-"""
-utils.py
-
-Common utility functions used across the PDF ingestion pipeline.
-"""
-
-from __future__ import annotations
-
 import hashlib
-import json
-import shutil
-import time
 from pathlib import Path
-from typing import Any, Iterable
 
-import fitz
+def get_file_hash(file_path: str) -> str:
+    """Fast hash for checkpointing"""
+    return hashlib.md5(file_path.encode()).hexdigest()[:8]
 
-from logger import logger
+def ensure_dir(path: str):
+    """Create directory if it doesn't exist"""
+    Path(path).mkdir(parents=True, exist_ok=True)
 
-
-# ==========================================================
-# JSON
-# ==========================================================
-
-def read_json(path: Path, default=None):
-
-    if default is None:
-        default = {}
-
-    if not path.exists():
-        return default
-
-    with open(path, "r", encoding="utf8") as f:
-        return json.load(f)
-
-
-def write_json(path: Path, data: Any):
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    with open(path, "w", encoding="utf8") as f
-
-
-
-#data_ingestion
+def find_pdfs(directory: str) -> list[Path]:
+    """Find all PDF files in directory"""
+    return list(Path(directory).glob("*.pdf"))

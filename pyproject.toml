@@ -5,11 +5,17 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "bcrypt>=5.0.0",
     "docling>=2.112.0",
     "docling-core>=2.87.0",
     "fitz>=0.0.1.dev2",
     "frontend>=0.0.3",
+    "gradio>=6.20.0",
     "psutil>=7.2.2",
     "pymupdf>=1.28.0",
+    "rapidocr-onnxruntime>=1.4.4",
     "requests>=2.34.2",
+    "streamlit>=1.59.1",
+    "torch>=2.13.0",
+    "torchvision>=0.28.0",
 ]

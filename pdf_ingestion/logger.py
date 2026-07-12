@@ -1,239 +1,48 @@
-"""
- Console logging
- File logging
- Colored logs
- Log rotation
- Execution timer
- Memory usage
- Progress statistics and 
- Error logging
-"""
-
-
 import logging
-import time
-import psutil
+import sys
+from pathlib import Path
 
-from functools import wraps
-from logging.handlers import RotatingFileHandler
-
-from config import LOG_FILE
-
-
-LOGGER_NAME = "PDF_INGESTION"
-
-
-def get_logger():
-
-    logger = logging.getLogger(LOGGER_NAME)
-
-    if logger.handlers:
-        return logger
-
-    logger.setLevel(logging.INFO)
-
-    formatter = logging.Formatter(
-        fmt="%(asctime)s | %(levelname)-8s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
-    # ----------------------------
-    # Console
-    # ----------------------------
-
-    console = logging.StreamHandler()
-
-    console.setFormatter(formatter)
-
-    # ----------------------------
-    # File
-    # ----------------------------
-
-    file = RotatingFileHandler(
-        LOG_FILE,
-        maxBytes=20 * 1024 * 1024,
-        backupCount=10,
-        encoding="utf8",
-    )
-
-    file.setFormatter(formatter)
-
-    logger.addHandler(console)
-
-    logger.addHandler(file)
-
-    logger.propagate = False
-
+def setup_logger(name: str, user_id: str = "unknown") -> logging.Logger:
+    """
+    Process-safe logger that routes all logs to a single file per user_id.
+    Uses append mode to allow multiple concurrent workers to write safely.
+    """
+    logger = logging.getLogger(name)
+    
+    # Prevent adding duplicate handlers if this function is called multiple times
+    # for the same logger name (e.g., in a loop or across imports).
+    if not logger.handlers:
+        logger.setLevel(logging.INFO)
+        logger.propagate = False  # Prevent logs from bubbling up to the root logger
+        
+        # 1. Console handler (Standard output)
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        
+        # 2. File handler (ONE FILE PER USER)
+        log_dir = Path("./logs")
+        log_dir.mkdir(parents=True, exist_ok=True)
+        
+        # The filename is strictly based on the user_id
+        log_file = log_dir / f"user_{user_id}.log"
+        
+        file_handler = logging.FileHandler(
+            log_file,
+            mode='a',  # Append mode: crucial for multiple workers writing to the same file
+            encoding='utf-8'
+        )
+        file_handler.setLevel(logging.DEBUG)
+        
+        # Formatters
+        formatter = logging.Formatter(
+            f'%(asctime)s | [USER: {user_id}] | %(name)-25s | %(levelname)-8s | %(message)s',
+            datefmt='%H:%M:%S'
+        )
+        
+        console_handler.setFormatter(formatter)
+        file_handler.setFormatter(formatter)
+        
+        logger.addHandler(console_handler)
+        logger.addHandler(file_handler)
+    
     return logger
-
-
-logger = get_logger()
-
-
-# ======================================================
-# Performance
-# ======================================================
-
-class Performance:
-
-    @staticmethod
-    def cpu():
-
-        return psutil.cpu_percent(interval=None)
-
-    @staticmethod
-    def process_memory():
-
-        process = psutil.Process()
-
-        return process.memory_info().rss / (1024 * 1024)
-
-    @staticmethod
-    def system_memory():
-
-        return psutil.virtual_memory().percent
-
-    @staticmethod
-    def disk():
-
-        return psutil.disk_usage("/").percent
-
-
-# ======================================================
-# Decorator
-# ======================================================
-
-def log_time(task_name=None):
-
-    def decorator(func):
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-
-            name = task_name or func.__name__
-
-            logger.info("=" * 70)
-
-            logger.info(f"START : {name}")
-
-            start = time.perf_counter()
-
-            try:
-
-                result = func(*args, **kwargs)
-
-                elapsed = time.perf_counter() - start
-
-                logger.info(f"END   : {name}")
-
-                logger.info(f"TIME  : {elapsed:.2f} sec")
-
-                logger.info("=" * 70)
-
-                return result
-
-            except Exception:
-
-                logger.exception(f"FAILED : {name}")
-
-                raise
-
-        return wrapper
-
-    return decorator
-
-
-# ======================================================
-# Helper Functions
-# ======================================================
-
-def system_stats():
-
-    logger.info("-" * 70)
-
-    logger.info(f"CPU Usage          : {Performance.cpu()} %")
-
-    logger.info(
-        f"Process Memory     : {Performance.process_memory():.2f} MB"
-    )
-
-    logger.info(
-        f"System RAM Usage   : {Performance.system_memory()} %"
-    )
-
-    logger.info(
-        f"Disk Usage         : {Performance.disk()} %"
-    )
-
-    logger.info("-" * 70)
-
-
-def stage(name):
-
-    logger.info("")
-    logger.info("=" * 70)
-    logger.info(name)
-    logger.info("=" * 70)
-
-
-def page(page_number):
-
-    logger.info(f"Processing Page : {page_number}")
-
-
-def batch(batch_number, pages):
-
-    logger.info(
-        f"Batch {batch_number} | Pages : {pages}"
-    )
-
-
-def success(msg):
-
-    logger.info(f"SUCCESS : {msg}")
-
-
-def warning(msg):
-
-    logger.warning(msg)
-
-
-def error(msg):
-
-    logger.error(msg)
-
-
-def exception(e):
-
-    logger.exception(e)
-
-
-def summary(
-    total_pages,
-    text_pages,
-    ocr_pages,
-    elapsed,
-):
-
-    logger.info("")
-    logger.info("=" * 70)
-
-    logger.info("INGESTION SUMMARY")
-
-    logger.info("=" * 70)
-
-    logger.info(f"Total Pages      : {total_pages}")
-
-    logger.info(f"Text Pages       : {text_pages}")
-
-    logger.info(f"OCR Pages        : {ocr_pages}")
-
-    logger.info(
-        f"Execution Time   : {elapsed:.2f} sec"
-    )
-
-    logger.info(
-        f"Process Memory   : {Performance.process_memory():.2f} MB"
-    )
-
-    logger.info("=" * 70)

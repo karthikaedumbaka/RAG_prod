@@ -1,103 +1,41 @@
-# -----------------------------------------------------
-'''
-for thsi config.py we are doing the input/output path checking or creation
-OCR Batch Settings
-Page Analysis like TEXT_THRESHOLD_RATIO etc and \
-logs
-
-'''
-# -----------------------------------------------------
-from pathlib import Path
 import os
+from dataclasses import dataclass, field
+from pathlib import Path
 
-# -----------------------------------------------------
-# Project Directories
-# -----------------------------------------------------
+PROJECT_ROOT = Path(__file__).parent.parent 
 
-BASE_DIR = Path(__file__).resolve().parent
-
-DATA_DIR = BASE_DIR / "data"
-
-OUTPUT_DIR = BASE_DIR / "output"
-
-TEMP_DIR = BASE_DIR / "temp"
-
-LOG_DIR = BASE_DIR / "logs"
-
-# -----------------------------------------------------
-# Auto create directories
-# -----------------------------------------------------
-
-for directory in [
-    OUTPUT_DIR,
-    TEMP_DIR,
-    LOG_DIR,
-]:
-    directory.mkdir(parents=True, exist_ok=True)
-
-# -----------------------------------------------------
-# Input PDF
-# -----------------------------------------------------
-
-PDF_FILES = list(DATA_DIR.glob("*.pdf"))
-
-if not PDF_FILES:
-    raise FileNotFoundError(
-        f"No PDF found inside {DATA_DIR}"
-    )
-
-PDF_PATH = PDF_FILES[0]
-
-# -----------------------------------------------------
-# OCR Batch Settings
-# -----------------------------------------------------
-
-OCR_BATCH_SIZE = 20
-
-# Memory safe
-
-MAX_WORKERS = min(4, os.cpu_count() or 2)
-
-# -----------------------------------------------------
-# Page Analysis
-# -----------------------------------------------------
-
-TEXT_THRESHOLD_RATIO = 0.70
-
-MAX_DRAWINGS = 25
-
-MAX_IMAGE_PERCENTAGE = 0.30
-
-# -----------------------------------------------------
-# Output
-# -----------------------------------------------------
-
-MARKDOWN_DIR = OUTPUT_DIR / "markdown"
-
-MARKDOWN_DIR.mkdir(exist_ok=True)
-
-FINAL_MARKDOWN = OUTPUT_DIR / "final_document.md"
-
-CHECKPOINT_FILE = OUTPUT_DIR / "checkpoint.json"
-
-PAGE_REPORT = OUTPUT_DIR / "page_report.json"
-
-# -----------------------------------------------------
-# Logging
-# -----------------------------------------------------
-
-LOG_FILE = LOG_DIR / "ingestion.log"
-
-# -----------------------------------------------------
-# Retry
-# -----------------------------------------------------
-
-MAX_RETRY = 2
-
-# -----------------------------------------------------
-# Temporary Batch PDFs
-# -----------------------------------------------------
-
-BATCH_DIR = TEMP_DIR / "batches"
-
-BATCH_DIR.mkdir(exist_ok=True)
+@dataclass
+class PipelineConfig:
+    user_id: str = "unknown"
+    
+    # Auto-discovery
+    data_dir: str = str(PROJECT_ROOT / "data")
+    output_dir: str = str(PROJECT_ROOT / "output")
+    temp_dir: str = str(PROJECT_ROOT / "temp_batches")
+    
+    # Hardware (MEMORY SAFE SETTINGS)
+    use_gpu: bool = True
+    num_workers: int = 2       
+    num_text_threads: int = 16 
+    
+    # Intelligent batching
+    text_pages_per_batch: int = 100 
+    ocr_pages_per_batch: int = 5  
+    
+    # Docling pipeline
+    do_table_structure: bool = False 
+    ocr_lang: list = field(default_factory=lambda: ["en"])
+    
+    # Checkpoint & recovery
+    checkpoint_file: str = "pipeline_state.json"
+    
+    # PERFORMANCE OVERRIDES
+    image_scale: float = 1.25     
+    use_rapid_ocr: bool = True      
+    use_fast_tables: bool = True    
+    min_text_length: int = 50       
+    
+    def __post_init__(self):
+        Path(self.data_dir).mkdir(parents=True, exist_ok=True)
+        Path(self.output_dir).mkdir(parents=True, exist_ok=True)
+        Path(self.temp_dir).mkdir(parents=True, exist_ok=True)
