@@ -20,7 +20,10 @@ def extract_batches(batches: dict, config: PipelineConfig):
         "ocr_lang": config.ocr_lang,
         "image_scale": config.image_scale,
         "use_rapid_ocr": config.use_rapid_ocr,
-        "use_fast_tables": config.use_fast_tables
+        "use_fast_tables": config.use_fast_tables,
+        "extract_pictures": config.extract_pictures,
+        "force_full_page_ocr": config.force_full_page_ocr,
+        "bitmap_area_threshold": config.bitmap_area_threshold
     }
     
     pending_text = [b for b in batches["text_batches"] if not checkpoint.is_completed(Path(b["path"]).stem)]
