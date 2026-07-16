@@ -12,4 +12,5 @@
 /.claude
 /_pycache_
 /users.db
+/.env
 
