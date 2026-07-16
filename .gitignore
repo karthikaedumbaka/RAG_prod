@@ -4,3 +4,12 @@
 /logs
 /users.db
 /test_pdf_to_text_fast.py
+/.venv
+/temp_chunks
+/temp_upload
+/.trae
+/.agent
+/.claude
+/_pycache_
+/users.db
+

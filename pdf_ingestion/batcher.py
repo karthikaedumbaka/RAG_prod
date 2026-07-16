@@ -1,6 +1,11 @@
-from analyzer import create_smart_batches
-from config import PipelineConfig
-from logger import setup_logger
+try:
+    from .analyzer import create_smart_batches
+    from .config import PipelineConfig
+    from .logger import setup_logger
+except ImportError:
+    from analyzer import create_smart_batches
+    from config import PipelineConfig
+    from logger import setup_logger
 
 log = setup_logger("batcher")
 

@@ -1,6 +1,10 @@
 import shutil
 from pathlib import Path
-from logger import setup_logger
+
+try:
+    from .logger import setup_logger
+except ImportError:
+    from logger import setup_logger
 
 
 

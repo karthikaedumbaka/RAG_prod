@@ -1,44 +1,34 @@
 import time
 import uuid
-import sys
-import msvcrt
-import bcrypt
+import getpass # 🛠️ FIX: Replaced msvcrt with cross-platform getpass
 from pathlib import Path
-from config import PipelineConfig
-from auth import authenticate_or_register
-from analyzer import analyze_pdf
-from batcher import create_batches
-from extractor import extract_batches
-from merger import merge_outputs
-from cleaner import cleanup_artifacts
-from utils import ensure_dir, find_pdfs
-from logger import setup_logger
+
+try:
+    from .config import PipelineConfig
+    from .auth import authenticate_or_register
+    from .analyzer import analyze_pdf
+    from .batcher import create_batches
+    from .extractor import extract_batches
+    from .merger import merge_outputs
+    from .cleaner import cleanup_artifacts
+    from .utils import ensure_dir, find_pdfs
+    from .logger import setup_logger
+except ImportError:
+    from config import PipelineConfig
+    from auth import authenticate_or_register
+    from analyzer import analyze_pdf
+    from batcher import create_batches
+    from extractor import extract_batches
+    from merger import merge_outputs
+    from cleaner import cleanup_artifacts
+    from utils import ensure_dir, find_pdfs
+    from logger import setup_logger
 
 def get_masked_password(prompt="Enter Password: "):
     """
-    OS-level keystroke interception.
-    Captures input and prints '*' instead of the actual character.
+    Cross-platform masked password input.
     """
-    sys.stdout.write(prompt)
-    sys.stdout.flush()
-    password = ""
-    
-    while True:
-        ch = msvcrt.getwch()
-        if ch in ('\r', '\n'):
-            sys.stdout.write('\n')
-            break
-        elif ch == '\b':
-            if len(password) > 0:
-                password = password[:-1]
-                sys.stdout.write('\b \b')
-                sys.stdout.flush()
-        else:
-            password += ch
-            sys.stdout.write('*')
-            sys.stdout.flush()
-            
-    return password
+    return getpass.getpass(prompt)
 
 def authenticate_user() -> str:
     """
@@ -48,13 +38,21 @@ def authenticate_user() -> str:
     print("=" * 50)
     print("USER AUTHENTICATION")
     print("=" * 50)
-    
-    user_id = input("Enter User ID: ").strip()
-    password = get_masked_password("Enter Password: ")
-    
+    try:
+        user_id = input("Enter User ID: ").strip()
+        password = get_masked_password("Enter Password: ")
+    except EOFError as exc:
+        raise RuntimeError(
+            "CLI authentication requires an interactive terminal. "
+            "Run `python -m pdf_ingestion.main` interactively or launch the UI instead."
+        ) from exc
+
+    if not user_id or not password:
+        raise RuntimeError("User ID and password are required.")
+
     # Call the dynamic auth function
     auth_status = authenticate_or_register(user_id, password)
-    
+
     if auth_status == "authenticated":
         print(f"Authentication successful. Welcome back, {user_id}!")
         return user_id
@@ -71,14 +69,12 @@ def authenticate_user() -> str:
 def process_single_pdf(pdf_path: Path, config: PipelineConfig) -> dict:
     """Process a single PDF through the entire pipeline"""
     log = setup_logger("main", config.user_id)
-    
     pdf_name = pdf_path.stem
     log.info("=" * 60)
     log.info(f"Processing: {pdf_path.name}")
     log.info("=" * 60)
     
     start_time = time.time()
-    
     try:
         analysis = analyze_pdf(str(pdf_path), config)
         batches = create_batches(str(pdf_path), analysis, config)
@@ -105,7 +101,6 @@ def process_single_pdf(pdf_path: Path, config: PipelineConfig) -> dict:
             "output": str(final_md),
             "status": "success"
         }
-        
     except Exception as e:
         log.exception(f"Critical failure processing {pdf_path.name}: {e}")
         return {
@@ -117,16 +112,14 @@ def process_single_pdf(pdf_path: Path, config: PipelineConfig) -> dict:
 def run_pipeline():
     # 1. AUTHENTICATE BEFORE ANYTHING ELSE
     user_id = authenticate_user()
-    
     start_time = time.time()
+    
     config = PipelineConfig()
     config.user_id = user_id  # Pass authenticated user_id to config
-    
     ensure_dir(config.output_dir)
     ensure_dir(config.temp_dir)
     
     log = setup_logger("main", config.user_id)
-    
     log.info("=" * 60)
     log.info("PDF INGESTION PIPELINE STARTING")
     log.info("=" * 60)
@@ -135,12 +128,11 @@ def run_pipeline():
     log.info(f"Workers: {config.num_workers} | GPU: {config.use_gpu}")
     
     pdf_files = find_pdfs(config.data_dir)
-    
     if not pdf_files:
         log.error(f"No PDFs found in {config.data_dir}")
         log.info("Tip: Place your PDFs in the 'data/' folder and run again.")
         return
-    
+        
     log.info(f"Found {len(pdf_files)} PDF(s) to process")
     
     results = []

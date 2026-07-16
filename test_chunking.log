@@ -1,0 +1,52 @@
+Testing chunking module...
+Loading markdown files from C:\Users\karth\Desktop\rag\rag_project_1\output
+Loaded 2 documents
+First document metadata: {'source': 'SDA_INDIA_2023_24.md', 'file_path': 'C:\\Users\\karth\\Desktop\\rag\\rag_project_1\\output\\SDA_INDIA_2023_24.md'}
+First document content preview: 
+
+<!-- page: 1 -->
+
+<!-- image -->
+
+<!-- image -->
+
+## SDGINDIA INDEXE 2023-24
+
+## TOWARDS VIKSIT BHARAT
+
+SUSTAINABLE PROGRESS, INCLUSIVE GROWTH
+
+<!-- image -->
+
+<!-- image -->
+
+
+
+<!-- page: 4 -->
+
+<!
+Chunking documents...
+Created 4552 chunks
+First chunk metadata: {'source': 'SDA_INDIA_2023_24.md', 'file_path': 'C:\\Users\\karth\\Desktop\\rag\\rag_project_1\\output\\SDA_INDIA_2023_24.md'}
+First chunk content preview: <!-- page: 1 -->
+
+<!-- image -->
+
+<!-- image -->
+
+## SDGINDIA INDEXE 2023-24
+
+## TOWARDS VIKSIT BHARAT
+
+SUSTAINABLE PROGRESS, INCLUSIVE GROWTH
+
+<!-- image -->
+
+<!-- image -->
+
+
+
+<!-- page: 4 -->
+
+<!--
+Chunking test complete!

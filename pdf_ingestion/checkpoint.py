@@ -1,7 +1,12 @@
 import json
 from pathlib import Path
-from config import PipelineConfig
-from logger import setup_logger
+
+try:
+    from .config import PipelineConfig
+    from .logger import setup_logger
+except ImportError:
+    from config import PipelineConfig
+    from logger import setup_logger
 
 log = setup_logger("checkpoint")
 

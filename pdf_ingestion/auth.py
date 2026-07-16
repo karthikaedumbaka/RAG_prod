@@ -27,13 +27,17 @@ def authenticate_or_register(user_id: str, password: str) -> str:
     If yes: verifies password. Returns 'authenticated' or 'failed'.
     If no: hashes password, creates user. Returns 'registered'.
     """
+    normalized_user_id = user_id.strip()
+    if not normalized_user_id or not password:
+        return "failed"
+
     init_db()
     
     conn = sqlite3.connect(str(DB_PATH))
     cursor = conn.cursor()
     
     # Check if user exists
-    cursor.execute("SELECT password_hash FROM users WHERE user_id = ?", (user_id,))
+    cursor.execute("SELECT password_hash FROM users WHERE user_id = ?", (normalized_user_id,))
     result = cursor.fetchone()
     
     if result:
@@ -51,7 +55,7 @@ def authenticate_or_register(user_id: str, password: str) -> str:
         hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
         
         cursor.execute("INSERT INTO users (user_id, password_hash) VALUES (?, ?)", 
-                       (user_id, hashed.decode('utf-8')))
+                       (normalized_user_id, hashed.decode('utf-8')))
         conn.commit()
         conn.close()
         return "registered"

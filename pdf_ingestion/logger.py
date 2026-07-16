@@ -1,34 +1,35 @@
 import logging
 import sys
 from pathlib import Path
+from logging.handlers import RotatingFileHandler # 🛠️ FIX: Import RotatingFileHandler
 
 def setup_logger(name: str, user_id: str = "unknown") -> logging.Logger:
     """
     Process-safe logger that routes all logs to a single file per user_id.
-    Uses append mode to allow multiple concurrent workers to write safely.
+    Uses RotatingFileHandler to prevent infinite log growth.
     """
-    logger = logging.getLogger(name)
+    logger_name = f"{name}.{user_id}"
+    logger = logging.getLogger(logger_name)
     
-    # Prevent adding duplicate handlers if this function is called multiple times
-    # for the same logger name (e.g., in a loop or across imports).
+    # Prevent adding duplicate handlers
     if not logger.handlers:
         logger.setLevel(logging.INFO)
-        logger.propagate = False  # Prevent logs from bubbling up to the root logger
+        logger.propagate = False  
         
-        # 1. Console handler (Standard output)
+        # 1. Console handler
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
         
-        # 2. File handler (ONE FILE PER USER)
-        log_dir = Path("./logs")
+        # 2. File handler (ONE FILE PER USER, ROTATING)
+        log_dir = Path(__file__).resolve().parent.parent / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
-        
-        # The filename is strictly based on the user_id
         log_file = log_dir / f"user_{user_id}.log"
         
-        file_handler = logging.FileHandler(
+        # 🛠️ FIX: Use RotatingFileHandler (10MB max, 5 backups)
+        file_handler = RotatingFileHandler(
             log_file,
-            mode='a',  # Append mode: crucial for multiple workers writing to the same file
+            maxBytes=10 * 1024 * 1024,  # 10 MB
+            backupCount=5,              # Keep 5 historical files
             encoding='utf-8'
         )
         file_handler.setLevel(logging.DEBUG)
@@ -38,11 +39,10 @@ def setup_logger(name: str, user_id: str = "unknown") -> logging.Logger:
             f'%(asctime)s | [USER: {user_id}] | %(name)-25s | %(levelname)-8s | %(message)s',
             datefmt='%H:%M:%S'
         )
-        
         console_handler.setFormatter(formatter)
         file_handler.setFormatter(formatter)
         
         logger.addHandler(console_handler)
         logger.addHandler(file_handler)
-    
+        
     return logger

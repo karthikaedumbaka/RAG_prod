@@ -1,7 +1,12 @@
 import fitz  # PyMuPDF
 from pathlib import Path
-from logger import setup_logger
-from config import PipelineConfig
+
+try:
+    from .logger import setup_logger
+    from .config import PipelineConfig
+except ImportError:
+    from logger import setup_logger
+    from config import PipelineConfig
 
 log = setup_logger("analyzer")
 
@@ -156,7 +161,10 @@ def create_smart_batches(pdf_path: str, analysis: dict, config: PipelineConfig) 
     Text pages can be processed in larger batches (faster).
     OCR pages need smaller batches (memory-intensive).
     """
-    from utils import ensure_dir
+    try:
+        from .utils import ensure_dir
+    except ImportError:
+        from utils import ensure_dir
     ensure_dir(config.temp_dir)
     
     doc = fitz.open(pdf_path)

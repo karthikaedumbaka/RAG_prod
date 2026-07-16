@@ -1,12 +1,19 @@
 import multiprocessing as mp
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from pathlib import Path
-from config import PipelineConfig
-from checkpoint import CheckpointManager
-from docling_worker import process_batch as process_ocr_batch
-from pymupdf_worker import process_text_batch
-from logger import setup_logger
 
+try:
+    from .config import PipelineConfig
+    from .checkpoint import CheckpointManager
+    from .docling_worker import process_batch as process_ocr_batch, init_worker
+    from .pymupdf_worker import process_text_batch
+    from .logger import setup_logger
+except ImportError:
+    from config import PipelineConfig
+    from checkpoint import CheckpointManager
+    from docling_worker import process_batch as process_ocr_batch, init_worker
+    from pymupdf_worker import process_text_batch
+    from logger import setup_logger
 
 def extract_batches(batches: dict, config: PipelineConfig):
     log = setup_logger("extractor", config.user_id)
@@ -14,7 +21,7 @@ def extract_batches(batches: dict, config: PipelineConfig):
     checkpoint = CheckpointManager(config)
     
     config_dict = {
-        "user_id": config.user_id,  # ADD THIS LINE
+        "user_id": config.user_id,
         "use_gpu": config.use_gpu,
         "do_table_structure": config.do_table_structure,
         "ocr_lang": config.ocr_lang,
@@ -25,7 +32,7 @@ def extract_batches(batches: dict, config: PipelineConfig):
         "force_full_page_ocr": config.force_full_page_ocr,
         "bitmap_area_threshold": config.bitmap_area_threshold
     }
-    
+
     pending_text = [b for b in batches["text_batches"] if not checkpoint.is_completed(Path(b["path"]).stem)]
     pending_ocr = [b for b in batches["ocr_batches"] if not checkpoint.is_completed(Path(b["path"]).stem)]
     
@@ -33,11 +40,12 @@ def extract_batches(batches: dict, config: PipelineConfig):
     if total_pending == 0:
         log.info("All batches already completed.")
         return
-        
+
     log.info(f"Dispatching {len(pending_text)} Text batches (Threads) & {len(pending_ocr)} OCR batches (Processes)")
     
     futures = {}
     
+    # 1. Process Text Batches (I/O Bound -> Threads)
     with ThreadPoolExecutor(max_workers=config.num_text_threads) as text_exec:
         for batch in pending_text:
             f = text_exec.submit(process_text_batch, batch, config.output_dir, config.user_id)
@@ -54,8 +62,15 @@ def extract_batches(batches: dict, config: PipelineConfig):
 
     futures.clear()
 
+    # 2. Process OCR Batches (CPU/GPU Bound -> Processes)
     if pending_ocr:
-        with ProcessPoolExecutor(max_workers=config.num_workers, mp_context=ctx) as ocr_exec:
+        # 🛠️ FIX: Pass initializer and initargs to load models ONCE per worker
+        with ProcessPoolExecutor(
+            max_workers=config.num_workers, 
+            mp_context=ctx,
+            initializer=init_worker,      # <--- Load models here
+            initargs=(config_dict,)       # <--- Pass config to the initializer
+        ) as ocr_exec:
             for batch in pending_ocr:
                 f = ocr_exec.submit(process_ocr_batch, batch, config.output_dir, config_dict)
                 futures[f] = batch
