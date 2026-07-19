@@ -27,4 +27,6 @@ dependencies = [
     "tiktoken>=0.13.0",
     "torch>=2.13.0",
     "torchvision>=0.28.0",
+    "einops>=0.8.2",
+    "openai>=2.46.0",
 ]

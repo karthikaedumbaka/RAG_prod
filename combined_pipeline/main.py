@@ -209,7 +209,11 @@ def run_chunking_embedding_pipeline():
 
     # Step 3: Create embedder
     print("Creating embedder...")
-    embedder = create_embedder(config.google_api_key, model=config.embedding_model)
+    embedder = create_embedder(model=config.embedding_model, output_dimensionality=config.embedding_dimension)
+    try:
+        embedding_dimension = len(embedder.embed_query("dimension probe"))
+    except Exception:
+        embedding_dimension = 768
 
     # Step 4: Initialize vector DB index
     print("Initializing vector database...")
@@ -217,7 +221,8 @@ def run_chunking_embedding_pipeline():
         api_key=config.pinecone_api_key,
         index_name=config.pinecone_index_name,
         cloud=config.pinecone_cloud,
-        region=config.pinecone_region
+        region=config.pinecone_region,
+        dimension=embedding_dimension
     )
 
     # Step 5: Store chunks in vector DB

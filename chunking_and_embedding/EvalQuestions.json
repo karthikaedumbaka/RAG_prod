@@ -1,0 +1,52 @@
+[
+  {
+    "question": "What is the national target for Maternal Mortality Ratio (MMR) by 2030?",
+    "expected_source": "SDA_INDIA_2023_24.md",
+    "expected_content_snippet": "70 per 100,000 live births"
+  },
+  {
+    "question": "What is India's composite score in the SDG India Index 2023-24?",
+    "expected_source": "SDA_INDIA_2023_24.md",
+    "expected_content_snippet": "71"
+  },
+  {
+    "question": "Which state leads the country in the generation of renewable power with 96.14 percent power generation?",
+    "expected_source": "SDA_INDIA_2023_24.md",
+    "expected_content_snippet": "Himachal Pradesh"
+  },
+  {
+    "question": "How many people have escaped multidimensional poverty in India between 2013-14 and 2022-23?",
+    "expected_source": "SDA_INDIA_2023_24.md",
+    "expected_content_snippet": "248 million"
+  },
+  {
+    "question": "What percentage of rural households receive safe and adequate drinking water through piped water supply?",
+    "expected_source": "SDA_INDIA_2023_24.md",
+    "expected_content_snippet": "75.75%"
+  },
+  {
+    "question": "What is the national target for forest and tree cover as a percentage of total geographical area?",
+    "expected_source": "SDA_INDIA_2023_24.md",
+    "expected_content_snippet": "33 percent"
+  },
+  {
+    "question": "Which states lead as top States with a score of 79 in the SDG India Index 2023-24?",
+    "expected_source": "SDA_INDIA_2023_24.md",
+    "expected_content_snippet": "Uttarakhand and Kerala"
+  },
+  {
+    "question": "What is India's rank among 132 countries in the Global Innovation Index 2021 by WIPO?",
+    "expected_source": "SDA_INDIA_2023_24.md",
+    "expected_content_snippet": "46th"
+  },
+  {
+    "question": "What is the target for under-5 mortality rate by 2030?",
+    "expected_source": "SDA_INDIA_2023_24.md",
+    "expected_content_snippet": "25 per 1,000 live births"
+  },
+  {
+    "question": "What programme is aimed at improving governance to enhance the quality of life in the remotest and least-developed parts of India?",
+    "expected_source": "SDA_INDIA_2023_24.md",
+    "expected_content_snippet": "Aspirational Districts and Blocks Programme"
+  }
+]
