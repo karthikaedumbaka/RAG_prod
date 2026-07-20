@@ -13,4 +13,5 @@
 /_pycache_
 /users.db
 /.env
+/.kilo
 

@@ -1,4 +1,5 @@
 """
+for testing purposes
 Evaluates embedding dimensions against a benchmark dataset to find the optimal dimension.
 """
 import time

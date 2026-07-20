@@ -1,7 +1,7 @@
 import logging
 import sys
 from pathlib import Path
-from logging.handlers import RotatingFileHandler # 🛠️ FIX: Import RotatingFileHandler
+from logging.handlers import RotatingFileHandler
 
 def setup_logger(name: str, user_id: str = "unknown") -> logging.Logger:
     """
@@ -25,7 +25,7 @@ def setup_logger(name: str, user_id: str = "unknown") -> logging.Logger:
         log_dir.mkdir(parents=True, exist_ok=True)
         log_file = log_dir / f"user_{user_id}.log"
         
-        # 🛠️ FIX: Use RotatingFileHandler (10MB max, 5 backups)
+        # Use RotatingFileHandler (10MB max, 5 backups)
         file_handler = RotatingFileHandler(
             log_file,
             maxBytes=10 * 1024 * 1024,  # 10 MB
