@@ -17,23 +17,23 @@ class ChunkingEmbeddingConfig:
     chunk_overlap: int = 200
     separators: list = None
     
-    # Embedding settings (100% open, no Hugging Face login required)
+    # Embedding settings
     embedding_model: str = "nomic-ai/nomic-embed-text-v1.5"
-    embedding_dimension: int = 768 
+    embedding_dimension: int = 768  # Fallback if auto-eval is disabled
+    
+    # 🌟 NEW: Auto-evaluation toggle
+    auto_evaluate_dimensions: bool = True 
     
     # Vector database settings
     vector_db_provider: str = "pinecone"
     pinecone_api_key: str = None
-    # Vector database settings
-    pinecone_index_name: str = "rag-index-nomic-768" # Changed to avoid conflict with old 3072 
+    pinecone_index_name: str = "rag-index-nomic" 
     pinecone_cloud: str = "aws"
     pinecone_region: str = "us-east-1"
     
     # Rate-limiting / resumability 
-    # Local models don't have API rate limits, but we keep batching for 
-    # memory efficiency and to respect Pinecone's upsert limits.
     embedding_batch_size: int = 100
-    embedding_batch_delay_seconds: float = 0.5  # Much faster locally
+    embedding_batch_delay_seconds: float = 0.5  
 
     def __post_init__(self):
         self.pinecone_api_key = self.pinecone_api_key or os.getenv("PINECONE_API_KEY")

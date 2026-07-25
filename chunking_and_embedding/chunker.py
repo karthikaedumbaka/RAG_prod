@@ -55,31 +55,21 @@ def extract_and_clean_page_metadata(chunks: List[Document]) -> List[Document]:
     Extracts [PAGE:X] markers from chunk content, adds them to metadata,
     and removes the markers from the final text so the LLM gets clean data.
     """
+    # 🛠️ FIX: Escape the square brackets so regex treats them as literal text
     page_pattern = re.compile(r'\[PAGE:(\d+)\]')
     
     for chunk in chunks:
-        # Find all page numbers in the chunk
-        pages = page_pattern.findall(chunk.page_content)
-        
-        if pages:
-            # Convert to integers and get unique sorted pages
-            unique_pages = sorted(list(set(int(p) for p in pages)))
-            
-            # Add to metadata (Pinecone accepts: string, number, boolean, list of strings)
-            chunk.metadata["page"] = unique_pages[0]          # Single integer ✅
-            chunk.metadata["pages"] = [str(p) for p in unique_pages]  # List of strings ✅
-            
-            # Remove the markers from the text so it's clean for the LLM
-            chunk.page_content = page_pattern.sub('', chunk.page_content).strip()
-        else:
-            # 🚨 FIX: Pinecone does NOT accept None/null or empty lists.
-            # Simply remove the keys entirely so they are never sent to Pinecone.
-            chunk.metadata.pop("page", None)
-            chunk.metadata.pop("pages", None)
-            
-            # Clean up any leftover markers just in case
-            chunk.page_content = page_pattern.sub('', chunk.page_content).strip()
-            
+         pages = page_pattern.findall(chunk.page_content)
+         if pages:
+             unique_pages = sorted(list(set(int(p) for p in pages)))
+             chunk.metadata["page"] = unique_pages[0]          # Single integer ✅
+             chunk.metadata["pages"] = [str(p) for p in unique_pages]  # List of strings ✅
+             chunk.page_content = page_pattern.sub('', chunk.page_content).strip()
+         else:
+             chunk.metadata.pop("page", None)
+             chunk.metadata.pop("pages", None)
+             chunk.page_content = page_pattern.sub('', chunk.page_content).strip()
+             
     return chunks
 
 

@@ -1,52 +1,52 @@
 [
   {
-    "question": "What is the national target for Maternal Mortality Ratio (MMR) by 2030?",
-    "expected_source": "SDA_INDIA_2023_24.md",
-    "expected_content_snippet": "70 per 100,000 live births"
+    "question": "What class of problems can be completely determined by the score sequence (indegree sequence) of a tournament?",
+    "expected_source": "2607.15260v1.md",
+    "expected_content_snippet": "problems whose answers are invariant under cycle reversal"
   },
   {
-    "question": "What is India's composite score in the SDG India Index 2023-24?",
-    "expected_source": "SDA_INDIA_2023_24.md",
-    "expected_content_snippet": "71"
+    "question": "How does the paper define a tournament in graph theory?",
+    "expected_source": "2607.15260v1.md",
+    "expected_content_snippet": "directed graphs (digraphs) where each pair of nodes shares exactly one directed edge"
   },
   {
-    "question": "Which state leads the country in the generation of renewable power with 96.14 percent power generation?",
-    "expected_source": "SDA_INDIA_2023_24.md",
-    "expected_content_snippet": "Himachal Pradesh"
+    "question": "What is the additive time complexity overhead for determining cycle-reversal-invariant problems on an n-node tournament according to Theorem 1.1?",
+    "expected_source": "2607.15260v1.md",
+    "expected_content_snippet": "n2+o(1) time for an n-node tournament"
   },
   {
-    "question": "How many people have escaped multidimensional poverty in India between 2013-14 and 2022-23?",
-    "expected_source": "SDA_INDIA_2023_24.md",
-    "expected_content_snippet": "248 million"
+    "question": "What space complexity does the single-pass streaming algorithm achieve for cycle-reversal-invariant problems on tournaments?",
+    "expected_source": "2607.15260v1.md",
+    "expected_content_snippet": "O(n log n)-space streaming algorithm"
   },
   {
-    "question": "What percentage of rural households receive safe and adequate drinking water through piped water supply?",
-    "expected_source": "SDA_INDIA_2023_24.md",
-    "expected_content_snippet": "75.75%"
+    "question": "What does it mean for a digraph to be k-close to a tournament (an almost tournament)?",
+    "expected_source": "2607.15260v1.md",
+    "expected_content_snippet": "digraphs that can be obtained by deleting at most k edges from a tournament"
   },
   {
-    "question": "What is the national target for forest and tree cover as a percentage of total geographical area?",
-    "expected_source": "SDA_INDIA_2023_24.md",
-    "expected_content_snippet": "33 percent"
+    "question": "According to Corollary 1.6, how many directed cut queries are needed to solve global and s,t-minimum cut on any directed graph?",
+    "expected_source": "2607.15260v1.md",
+    "expected_content_snippet": "O(n2) directed cut queries and polynomial runtime"
   },
   {
-    "question": "Which states lead as top States with a score of 79 in the SDG India Index 2023-24?",
-    "expected_source": "SDA_INDIA_2023_24.md",
-    "expected_content_snippet": "Uttarakhand and Kerala"
+    "question": "What is the relationship between the cut-query model and the semi-streaming model for tournament problems?",
+    "expected_source": "2607.15260v1.md",
+    "expected_content_snippet": "existence of a cut-query algorithm (irrespective of the number of queries) implies the existence of a semi-streaming algorithm"
   },
   {
-    "question": "What is India's rank among 132 countries in the Global Innovation Index 2021 by WIPO?",
-    "expected_source": "SDA_INDIA_2023_24.md",
-    "expected_content_snippet": "46th"
+    "question": "What is the definition of cutwidth of a digraph?",
+    "expected_source": "2607.15260v1.md",
+    "expected_content_snippet": "the minimum width over all vertex orderings"
   },
   {
-    "question": "What is the target for under-5 mortality rate by 2030?",
-    "expected_source": "SDA_INDIA_2023_24.md",
-    "expected_content_snippet": "25 per 1,000 live births"
+    "question": "Which prior work showed that acyclicity testing and topological sorting can be determined by the score sequence of a tournament?",
+    "expected_source": "2607.15260v1.md",
+    "expected_content_snippet": "Chakrabarti, Ghosh, McGregor, and Vorotnikova"
   },
   {
-    "question": "What programme is aimed at improving governance to enhance the quality of life in the remotest and least-developed parts of India?",
-    "expected_source": "SDA_INDIA_2023_24.md",
-    "expected_content_snippet": "Aspirational Districts and Blocks Programme"
+    "question": "What is the circulation problem with vertex demands used for in the proof of Lemma 3.1?",
+    "expected_source": "2607.15260v1.md",
+    "expected_content_snippet": "we find a flow f which satisfies the following equations"
   }
 ]

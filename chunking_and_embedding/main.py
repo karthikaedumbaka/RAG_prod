@@ -1,156 +1,231 @@
-import sys
 import time
+import uuid
+import getpass
 from pathlib import Path
-import json
 
-# FIX: Inject project root into sys.path so direct execution works
-PROJECT_ROOT = Path(__file__).parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-# Try relative imports first (for -m execution), fallback to absolute (for direct execution)
+# Import from pdf_ingestion
 try:
-    from .config import ChunkingEmbeddingConfig
-    from .chunker import load_markdown_files, chunk_documents
-    from .embedder import create_embedder
-    from .vector_store import init_pinecone_index, store_in_pinecone_resumable
-    from .generate_eval_questions import generate_questions_with_kimi
-    from .eval_dimensions import evaluate_dimensions_recall_mmr  # <-- Updated import
+    from pdf_ingestion.config import PipelineConfig as PDFIngestionConfig
+    from pdf_ingestion.auth import authenticate_or_register
+    from pdf_ingestion.analyzer import analyze_pdf
+    from pdf_ingestion.batcher import create_batches
+    from pdf_ingestion.extractor import extract_batches
+    from pdf_ingestion.merger import merge_outputs
+    from pdf_ingestion.cleaner import cleanup_artifacts
+    from pdf_ingestion.utils import ensure_dir, find_pdfs
+    from pdf_ingestion.logger import setup_logger
 except ImportError:
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from pdf_ingestion.config import PipelineConfig as PDFIngestionConfig
+    from pdf_ingestion.auth import authenticate_or_register
+    from pdf_ingestion.analyzer import analyze_pdf
+    from pdf_ingestion.batcher import create_batches
+    from pdf_ingestion.extractor import extract_batches
+    from pdf_ingestion.merger import merge_outputs
+    from pdf_ingestion.cleaner import cleanup_artifacts
+    from pdf_ingestion.utils import ensure_dir, find_pdfs
+    from pdf_ingestion.logger import setup_logger
+
+# Import from chunking_and_embedding
+try:
     from chunking_and_embedding.config import ChunkingEmbeddingConfig
     from chunking_and_embedding.chunker import load_markdown_files, chunk_documents
     from chunking_and_embedding.embedder import create_embedder
-    from chunking_and_embedding.vector_store import init_pinecone_index, store_in_pinecone_resumable
-    from chunking_and_embedding.generate_eval_questions import generate_questions_with_kimi
-    from chunking_and_embedding.eval_dimensions import evaluate_dimensions_recall_mmr  # <-- Updated import
+    from chunking_and_embedding.vector_store import init_pinecone_index, store_in_pinecone
+except ImportError:
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from chunking_and_embedding.config import ChunkingEmbeddingConfig
+    from chunking_and_embedding.chunker import load_markdown_files, chunk_documents
+    from chunking_and_embedding.embedder import create_embedder
+    from chunking_and_embedding.vector_store import init_pinecone_index, store_in_pinecone
 
-def run_chunking_embedding_pipeline():
-    print("=" * 60)
-    print("🚀 CHUNKING & EMBEDDING PIPELINE STARTING")
-    print("=" * 60)
+def get_masked_password(prompt="Enter Password: "):
+    return getpass.getpass(prompt)
+
+def authenticate_user() -> str:
+    """Dynamic CLI Authentication."""
+    # Keep print here for interactive CLI prompts before the logger is bound to a user
+    print("=" * 50)
+    print("USER AUTHENTICATION")
+    print("=" * 50)
+    try:
+        user_id = input("Enter User ID: ").strip()
+        password = get_masked_password("Enter Password: ")
+    except EOFError as exc:
+        raise RuntimeError("CLI authentication requires an interactive terminal.") from exc
+
+    if not user_id or not password:
+        raise RuntimeError("User ID and password are required.")
+
+    auth_status = authenticate_or_register(user_id, password)
+    if auth_status == "authenticated":
+        print(f"Authentication successful. Welcome back, {user_id}!")
+        return user_id
+    elif auth_status == "registered":
+        print(f"New user detected. Account created successfully. Welcome, {user_id}!")
+        return user_id
+    else:
+        print(f"Authentication failed for user '{user_id}'. Incorrect password.")
+        unique_id = f"guest_{uuid.uuid4().hex[:8]}"
+        print(f"Assigned unique guest ID: {unique_id}")
+        return unique_id
+
+def process_single_pdf(pdf_path: Path, config: PDFIngestionConfig) -> dict:
+    log = setup_logger("main", config.user_id)
+    pdf_name = pdf_path.stem
+    log.info("=" * 60)
+    log.info(f"Processing: {pdf_path.name}")
+    log.info("=" * 60)
+    start_time = time.time()
+    
+    try:
+        analysis = analyze_pdf(str(pdf_path), config)
+        batches = create_batches(str(pdf_path), analysis, config)
+        extract_batches(batches, config)
+        final_md = merge_outputs(pdf_name, batches, config)
+        
+        if final_md.exists():
+            cleanup_artifacts(config)
+        else:
+            log.warning("Final merge failed or file missing. Keeping artifacts for debugging.")
+            
+        elapsed = time.time() - start_time
+        pages_per_sec = analysis["total_pages"] / elapsed if elapsed > 0 else 0
+        log.info(f"Completed {pdf_path.name}")
+        log.info(f"Time: {elapsed:.2f}s | Speed: {pages_per_sec:.2f} pages/sec")
+        log.info(f"Output: {final_md}")
+        
+        return {"pdf": str(pdf_path), "pages": analysis["total_pages"], "time": elapsed, "speed": pages_per_sec, "output": str(final_md), "status": "success"}
+    except Exception as e:
+        log.exception(f"Critical failure processing {pdf_path.name}: {e}")
+        return {"pdf": str(pdf_path), "status": "failed", "error": str(e)}
+
+def run_pdf_ingestion_pipeline(user_id: str):
+    start_time = time.time()
+    config = PDFIngestionConfig()
+    config.user_id = user_id
+    ensure_dir(config.output_dir)
+    ensure_dir(config.temp_dir)
+    
+    log = setup_logger("main", config.user_id)
+    log.info("=" * 60)
+    log.info("PDF INGESTION PIPELINE STARTING")
+    log.info("=" * 60)
+    log.info(f"Data directory: {config.data_dir}")
+    log.info(f"Output directory: {config.output_dir}")
+    log.info(f"Workers: {config.num_workers} | GPU: {config.use_gpu}")
+    
+    pdf_files = find_pdfs(config.data_dir)
+    if not pdf_files:
+        log.error(f"No PDFs found in {config.data_dir}")
+        log.info("Tip: Place your PDFs in the 'data/' folder and run again.")
+        return []
+        
+    log.info(f"Found {len(pdf_files)} PDF(s) to process")
+    results = []
+    for pdf_path in pdf_files:
+        result = process_single_pdf(pdf_path, config)
+        results.append(result)
+        
+    total_time = time.time() - start_time
+    successful = sum(1 for r in results if r.get("status") == "success")
+    failed = len(results) - successful
+    total_pages = sum(r.get("pages", 0) for r in results if r.get("status") == "success")
+    overall_speed = total_pages / total_time if total_time > 0 else 0
+    
+    log.info("=" * 60)
+    log.info("PDF INGESTION PIPELINE COMPLETE")
+    log.info("=" * 60)
+    log.info(f"PDFs processed: {successful}/{len(pdf_files)}")
+    log.info(f"Failed: {failed}")
+    log.info(f"Total pages: {total_pages}")
+    log.info(f"Total time: {total_time:.2f}s")
+    log.info(f"Overall speed: {overall_speed:.2f} pages/sec")
+    log.info("=" * 60)
+    return results
+
+def run_chunking_embedding_pipeline(user_id: str = "unknown"):
+    """Run the chunking and embedding pipeline"""
+    log = setup_logger("combined_pipeline", user_id)
+    log.info("=" * 60)
+    log.info("CHUNKING & EMBEDDING PIPELINE STARTING")
+    log.info("=" * 60)
+    
     config = ChunkingEmbeddingConfig()
     start_time = time.time()
 
-    # ---------------------------------------------------------
-    # STEP 1: Handle Evaluation Questions (Strict Interactive Prompt)
-    # ---------------------------------------------------------
-    eval_path = Path(__file__).parent / "EvalQuestions.json"
-    
-    try:
-        if eval_path.exists():
-            print(f"\n✅ Found existing {eval_path.name}")
-            overwrite = input("🔄 Do you want to overwrite and regenerate it using the LLM API? [y/N]: ").strip().lower()
-            
-            if overwrite == 'y':
-                print("🚀 Triggering API to regenerate benchmark questions...")
-                generate_questions_with_kimi(config.input_dir, eval_path)
-            else:
-                print("🛑 User selected 'N'. Using existing EvalQuestions.json only. Skipping API generation.")
-        else:
-            print(f"\n⚠️ {eval_path.name} not found locally.")
-            generate = input("🔍 Do you want to generate it now using the LLM API? [Y/n]: ").strip().lower()
-            
-            if generate != 'n':
-                print("🚀 Triggering API to generate benchmark questions...")
-                generate_questions_with_kimi(config.input_dir, eval_path)
-            else:
-                raise RuntimeError(f"❌ Cannot proceed without {eval_path.name}. Please create it manually or allow the script to generate it.")
-    except EOFError:
-        raise RuntimeError("CLI requires an interactive terminal to answer prompts. Run directly via `uv run ...` instead of piping input.")
-
-    with open(eval_path, "r", encoding="utf-8") as f:
-        questions = json.load(f)
-
-    if not questions:
-        raise ValueError("❌ EvalQuestions.json is empty or contains no valid questions.")
-    print(f"📝 Loaded {len(questions)} benchmark questions for evaluation.")
-
-    # ---------------------------------------------------------
-    # STEP 2: Load Data & Initial Chunking (For Evaluation)
-    # ---------------------------------------------------------
-    print("\n📂 Loading processed markdown files...")
+    log.info("Loading processed markdown files...")
     docs = load_markdown_files(config.input_dir)
     if not docs:
-        raise FileNotFoundError(f"❌ No markdown files found in {config.input_dir}")
-    print(f"   Loaded {len(docs)} document(s)")
+        log.error(f"No markdown files found in {config.input_dir}")
+        return
+    log.info(f"Loaded {len(docs)} document(s)")
 
-    print("🔪 Chunking documents for evaluation...")
+    log.info("Chunking documents...")
     chunks = chunk_documents(
-        docs, 
-        chunk_size=config.chunk_size, 
-        chunk_overlap=config.chunk_overlap, 
-        separators=config.separators
+        docs, chunk_size=config.chunk_size, 
+        chunk_overlap=config.chunk_overlap, separators=config.separators
     )
-    print(f"   Created {len(chunks)} chunks")
+    log.info(f"Created {len(chunks)} chunks")
 
-    # ---------------------------------------------------------
-    # STEP 3: Find Best Dimension using Recall & MMR
-    # ---------------------------------------------------------
-    print("\n📏 Evaluating different vector dimensions using Recall@K and MMR...")
+    log.info("Creating embedder...")
+    embedder = create_embedder(model=config.embedding_model, output_dimensionality=config.embedding_dimension)
     
-    # Define the dimensions you want to test
-    dimensions_to_test = [256, 384, 512, 768] 
-    
-    best_result = evaluate_dimensions_recall_mmr(
-        config=config,
-        chunks=chunks,
-        questions=questions,
-        dimensions_to_test=dimensions_to_test
-    )
-    
-    best_dim = best_result['dimension']
-    
-    # Dynamically update config in memory
-    config.embedding_dimension = best_dim
-    config.pinecone_index_name = f"rag-index-nomic-{best_dim}"
-    
-    print(f"\n🏆 Best Dimension Selected: {best_dim}")
-    print(f"   -> Avg Recall: {best_result['avg_recall']:.3f}")
-    print(f"   -> Avg MMR:    {best_result['avg_mmr']:.3f}")
-    print(f"   -> Final Score:{best_result['final_score']:.3f}")
-    print(f"   -> Updated Index Name: {config.pinecone_index_name}")
+    try:
+        embedding_dimension = len(embedder.embed_query("dimension probe"))
+    except Exception:
+        embedding_dimension = 768
 
-    # ---------------------------------------------------------
-    # STEP 4: Final Embedding & Vector DB Upsert
-    # ---------------------------------------------------------
-    print(f"\n🧠 Creating final local embedder (model={config.embedding_model}, dimension={config.embedding_dimension})...")
-    embedder = create_embedder(
-        model=config.embedding_model,
-        output_dimensionality=config.embedding_dimension,
-    )
-
-    print("🌲 Initializing final Pinecone vector database...")
+    log.info("Initializing vector database...")
     init_pinecone_index(
-        api_key=config.pinecone_api_key,
-        index_name=config.pinecone_index_name,
-        cloud=config.pinecone_cloud,
-        region=config.pinecone_region,
-        dimension=config.embedding_dimension
+        api_key=config.pinecone_api_key, index_name=config.pinecone_index_name,
+        cloud=config.pinecone_cloud, region=config.pinecone_region, dimension=embedding_dimension
     )
 
-    print("💾 Storing chunks in vector database...")
-    store_in_pinecone_resumable(
-        chunks=chunks,
-        embedder=embedder,
-        index_name=config.pinecone_index_name,
-        api_key=config.pinecone_api_key,
-        batch_size=config.embedding_batch_size,
-        delay_between_batches=config.embedding_batch_delay_seconds,
-        checkpoint_path=config.embedding_checkpoint_path,
+    log.info("Storing chunks in vector database...")
+    store_in_pinecone(
+        chunks=chunks, embedder=embedder, 
+        index_name=config.pinecone_index_name, api_key=config.pinecone_api_key
     )
 
-    # ---------------------------------------------------------
-    # COMPLETION
-    # ---------------------------------------------------------
     elapsed = time.time() - start_time
-    print("\n" + "=" * 60)
-    print("✅ CHUNKING & EMBEDDING PIPELINE COMPLETE")
-    print("=" * 60)
-    print(f"Documents processed: {len(docs)}")
-    print(f"Chunks created: {len(chunks)}")
-    print(f"Final Index: {config.pinecone_index_name} (Dim: {config.embedding_dimension})")
-    print(f"Total time: {elapsed:.2f}s")
-    print("=" * 60)
+    log.info("=" * 60)
+    log.info("CHUNKING & EMBEDDING PIPELINE COMPLETE")
+    log.info("=" * 60)
+    log.info(f"Documents processed: {len(docs)}")
+    log.info(f"Chunks created: {len(chunks)}")
+    log.info(f"Total time: {elapsed:.2f}s")
+    log.info("=" * 60)
+
+def run_combined_pipeline():
+    """Run the entire combined pipeline: PDF Ingestion -> Chunking & Embedding"""
+    log = setup_logger("combined_pipeline")
+    log.info("=" * 60)
+    log.info("COMBINED RAG PIPELINE STARTING")
+    log.info("=" * 60)
+
+    # Step 1: Authenticate user
+    user_id = authenticate_user()
+    
+    # Re-bind logger to the authenticated user_id
+    log = setup_logger("combined_pipeline", user_id)
+
+    # Step 2: Run PDF ingestion
+    pdf_results = run_pdf_ingestion_pipeline(user_id)
+
+    successful_pdfs = [r for r in pdf_results if r.get("status") == "success"]
+    if not successful_pdfs:
+        log.warning("No PDFs processed successfully, skipping chunking and embedding.")
+        return
+
+    # Step 3: Run chunking and embedding
+    run_chunking_embedding_pipeline(user_id)
+
+    log.info("=" * 60)
+    log.info("COMBINED RAG PIPELINE COMPLETE")
+    log.info("=" * 60)
 
 if __name__ == "__main__":
-    run_chunking_embedding_pipeline()
+    run_combined_pipeline()

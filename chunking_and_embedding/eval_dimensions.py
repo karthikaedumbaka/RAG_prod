@@ -1,111 +1,134 @@
+import json
 import time
 import numpy as np
+from pathlib import Path
 from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
+from .embedder import create_embedder
+from .logger import setup_logger
 
-# Adjust import based on your project structure
-try:
-    from .embedder import create_embedder
-except ImportError:
-    from chunking_and_embedding.embedder import create_embedder
+log = setup_logger("eval_dimensions")
 
-def calculate_hit(retrieved_docs, expected_source, expected_snippet):
-    """
-    Checks if the retrieved documents contain the expected source or snippet.
-    Returns 1.0 (Hit) or 0.0 (Miss).
-    """
-    for doc in retrieved_docs:
-        doc_source = doc.metadata.get('source', '')
-        
-        # Check Source Match
-        if expected_source and expected_source.lower() in doc_source.lower():
-            return 1.0
-            
-        # Check Snippet Match
-        if expected_snippet and expected_snippet.lower() in doc.page_content.lower():
-            return 1.0
-            
-    return 0.0
+DIMENSIONS_TO_TEST = [256, 512, 768]
+EVAL_QUESTIONS_PATH = Path(__file__).parent / "EvalQuestions.json"
+OPTIMAL_DIM_CACHE = Path(__file__).parent.parent / "optimal_dimension.json"
 
-def evaluate_dimensions_recall_mmr(config, chunks, questions, dimensions_to_test, k=5):
-    """
-    Tests multiple dimensions using Recall@K and MMR, returning the best dimension.
-    """
-    pc = Pinecone(api_key=config.pinecone_api_key)
-    results = []
+def _load_eval_questions():
+    """Loads the ground-truth Q&A dataset for evaluation."""
+    if not EVAL_QUESTIONS_PATH.exists():
+        log.warning(f"⚠️ EvalQuestions.json not found at {EVAL_QUESTIONS_PATH}.")
+        return None
+    with open(EVAL_QUESTIONS_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-    for dim in dimensions_to_test:
-        print(f"\n--- Testing Dimension: {dim} ---")
-        index_name = f"eval-temp-{dim}"
-        
-        # 1. Create temporary index
-        if index_name in pc.list_indexes().names():
-            pc.delete_index(index_name)
-            time.sleep(5)
-            
-        print(f"  🏗️ Creating temporary Pinecone index '{index_name}'...")
+def _evaluate_single_dimension(dim: int, chunks, config, questions, pc: Pinecone) -> dict:
+    """Tests a single dimension by creating a temp index, evaluating, and guaranteeing cleanup."""
+    # Unique index name to prevent collisions
+    index_name = f"rag-eval-{dim}-{int(time.time())}"
+    
+    try:
+        log.info(f"  🏗️ Creating temp Pinecone index '{index_name}' (dim={dim})...")
         pc.create_index(
-            name=index_name, 
-            dimension=dim, 
-            metric="cosine", 
+            name=index_name, dimension=dim, metric="cosine", 
             spec=ServerlessSpec(cloud=config.pinecone_cloud, region=config.pinecone_region)
         )
-        time.sleep(10) # Wait for Pinecone index initialization
-
-        try:
-            # 2. Initialize Embedder and Vector Store
-            embedder = create_embedder(
-                model=config.embedding_model, 
-                output_dimensionality=dim
-            )
-            vector_store = PineconeVectorStore(
-                embedding=embedder, 
-                index_name=index_name, 
-                pinecone_api_key=config.pinecone_api_key
-            )
-
-            # 3. Upsert chunks for evaluation
-            print(f"  📤 Upserting {len(chunks)} chunks for evaluation...")
-            vector_store.add_documents(chunks)
-            time.sleep(2) # Allow Pinecone to finish indexing
-
-            # 4. Evaluate Recall and MMR
-            recall_scores = []
-            mmr_scores = []
-
-            for q_data in questions:
-                query = q_data['question']
-                exp_source = q_data.get('expected_source', '')
-                exp_snippet = q_data.get('expected_content_snippet', '')
-
-                # A) Standard Similarity Search (Calculates Recall@K)
-                docs_sim = vector_store.similarity_search(query, k=k)
-                recall_scores.append(calculate_hit(docs_sim, exp_source, exp_snippet))
-
-                # B) Maximal Marginal Relevance Search (Calculates MMR Hit Rate)
-                # fetch_k=20 retrieves more candidates to ensure diversity before picking top k
-                docs_mmr = vector_store.max_marginal_relevance_search(query, k=k, fetch_k=20)
-                mmr_scores.append(calculate_hit(docs_mmr, exp_source, exp_snippet))
-
-            avg_recall = np.mean(recall_scores)
-            avg_mmr = np.mean(mmr_scores)
+        log.info(f"  ⏳ Waiting 15s for index initialization...")
+        time.sleep(15) 
+        
+        # Initialize embedder and vector store for this dimension
+        embedder = create_embedder(model=config.embedding_model, output_dimensionality=dim)
+        vs = PineconeVectorStore(
+            embedding=embedder, index_name=index_name, pinecone_api_key=config.pinecone_api_key
+        )
+        
+        # Upsert chunks in batches
+        log.info(f"  📤 Upserting {len(chunks)} chunks for evaluation...")
+        batch_size = 100
+        for i in range(0, len(chunks), batch_size):
+            vs.add_documents(chunks[i:i+batch_size])
+        time.sleep(2) # Allow Pinecone to finish indexing
+        
+        # Evaluate Recall@5 and MRR
+        hits_at_5 = 0
+        reciprocal_ranks = []
+        
+        for item in questions:
+            results = vs.similarity_search(item["question"], k=5)
+            rank_of_hit = None
             
-            # Final Score: Weighted average (60% weight on pure Recall, 40% on MMR diversity)
-            final_score = (0.6 * avg_recall) + (0.4 * avg_mmr)
-
-            results.append({
-                "dimension": dim,
-                "avg_recall": avg_recall,
-                "avg_mmr": avg_mmr,
-                "final_score": final_score
-            })
-            print(f"  ✅ Dim {dim} -> Recall: {avg_recall:.3f}, MMR: {avg_mmr:.3f}, Final Score: {final_score:.3f}")
-
-        finally:
-            # 5. Cleanup temporary index to save costs/space
-            print(f"  🧹 Cleaning up temporary index '{index_name}'...")
+            for rank, doc in enumerate(results, start=1):
+                # Check if the expected snippet is in the retrieved chunk
+                snippet = item.get("expected_content_snippet", "")
+                if snippet and snippet.lower() in doc.page_content.lower():
+                    rank_of_hit = rank
+                    break
+            
+            if rank_of_hit and rank_of_hit <= 5:
+                hits_at_5 += 1
+            reciprocal_ranks.append(1.0 / rank_of_hit if rank_of_hit else 0.0)
+            
+        recall_5 = hits_at_5 / len(questions)
+        mrr = sum(reciprocal_ranks) / len(questions)
+        
+        # Composite score (heavily weight Recall, use MRR as tiebreaker)
+        score = recall_5 + (mrr * 0.1) 
+        
+        return {"dimension": dim, "recall@5": recall_5, "mrr": mrr, "score": score}
+        
+    finally:
+        # 🧹 GUARANTEED CLEANUP (Crucial to avoid Pinecone index limits/costs)
+        if index_name in pc.list_indexes().names():
+            log.info(f"  🧹 Cleaning up temp index '{index_name}'...")
             pc.delete_index(index_name)
 
-    # Find and return the dimension with the highest final score
-    best_result = max(results, key=lambda x: x['final_score'])
-    return best_result
+def find_optimal_dimension(config, chunks) -> int:
+    """
+    Main entry point. Checks cache first. If no cache, runs the evaluation 
+    across all dimensions and returns the mathematically best one.
+    """
+    # 1. CHECK CACHE (Saves ~4 minutes on subsequent runs)
+    if OPTIMAL_DIM_CACHE.exists():
+        try:
+            with open(OPTIMAL_DIM_CACHE, "r") as f:
+                cached = json.load(f)
+                log.info(f"✅ Using cached optimal dimension: {cached['dimension']} (Score: {cached['score']:.3f})")
+                return cached['dimension']
+        except Exception:
+            pass # Cache corrupted, re-evaluate
+
+    # 2. LOAD QUESTIONS
+    questions = _load_eval_questions()
+    if not questions:
+        log.warning("⚠️ No evaluation questions found. Falling back to default dimension (768).")
+        return 768
+
+    log.info("=" * 60)
+    log.info("🔬 EVALUATING EMBEDDING DIMENSIONS (This may take 3-4 minutes...)")
+    log.info("=" * 60)
+    
+    pc = Pinecone(api_key=config.pinecone_api_key)
+    best_dim = 768
+    best_score = -1.0
+    
+    # 3. TEST EACH DIMENSION
+    for dim in DIMENSIONS_TO_TEST:
+        try:
+            metrics = _evaluate_single_dimension(dim, chunks, config, questions, pc)
+            log.info(
+                f"  📊 Dim {dim} -> Recall@5: {metrics['recall@5']:.2%} | "
+                f"MRR: {metrics['mrr']:.3f} | Final Score: {metrics['score']:.3f}"
+            )
+            if metrics['score'] > best_score:
+                best_score = metrics['score']
+                best_dim = dim
+        except Exception as e:
+            log.exception(f"❌ Error evaluating dimension {dim}: {e}")
+            
+    log.info(f"🏆 BEST DIMENSION SELECTED: {best_dim} (Score: {best_score:.3f})")
+    log.info("=" * 60)
+    
+    # 4. SAVE TO CACHE
+    with open(OPTIMAL_DIM_CACHE, "w") as f:
+        json.dump({"dimension": best_dim, "score": best_score}, f)
+        
+    return best_dim
