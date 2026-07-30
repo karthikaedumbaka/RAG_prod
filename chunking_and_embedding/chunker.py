@@ -56,7 +56,7 @@ def extract_and_clean_page_metadata(chunks: List[Document]) -> List[Document]:
     and removes the markers from the final text so the LLM gets clean data.
     """
     # 🛠️ FIX: Escape the square brackets so regex treats them as literal text
-    page_pattern = re.compile(r'\[PAGE:(\d+)\]')
+    page_pattern = re.compile(r'\[PAGE:(\d+)\]') 
     
     for chunk in chunks:
          pages = page_pattern.findall(chunk.page_content)

@@ -159,15 +159,17 @@ def generate_node(state: GraphState, config: QueryConfig):
         context_str += f"[Source {i}: {source} | Page {page}]\n{doc.page_content}\n\n"
 
     # Prompt template
+     # Prompt template
     prompt = ChatPromptTemplate.from_messages([
         ("system", 
-         "You are an expert research assistant. Answer the user's question using ONLY the provided context. "
-         "If the answer is not in the context, politely state that you don't know. "
-         "When referencing facts, include the Source and Page number in brackets, e.g., [Source: paper.md, Page: 2]."
+        "You are a STRICT research assistant. Answer the user's question using ONLY the provided context. "
+        "DO NOT use any outside knowledge or make up facts. "
+        "If the answer is not explicitly stated in the context, you MUST reply: 'I do not have enough information in the provided context to answer this.' "
+        "When referencing facts, include the Source and Page number in brackets, e.g., [Source: paper.md, Page: 2]."
         ),
-        MessagesPlaceholder(variable_name="messages"), # Inject chat history
+        MessagesPlaceholder(variable_name="messages"),
         ("human", 
-         "Context:\n{context}\n\nUser Question: {question}\n\nProvide a comprehensive answer:"
+        "Context:\n{context}\n\nUser Question: {question}\n\nProvide a comprehensive answer:"
         )
     ])
 

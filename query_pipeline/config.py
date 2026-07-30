@@ -38,14 +38,14 @@ class QueryConfig:
     PINECONE_INDEX_NAME: str = _ingestion_config.pinecone_index_name
     
     # 🚀 LLM Settings (Using Groq for ultra-fast, free inference)
-    LLM_API_KEY: str = os.getenv("GROQ_API_KEY")
+    LLM_API_KEY: str = os.getenv("LLM_API_KEY")
     LLM_BASE_URL: str = "https://api.groq.com/openai/v1"
     LLM_MODEL: str = "llama-3.3-70b-versatile" 
     
     # Retrieval Settings
-    RETRIEVAL_K: int = 5  # Number of chunks to retrieve
-    USE_MMR: bool = True  # Maximal Marginal Relevance for diverse results
-    MMR_FETCH_K: int = 20 # Fetch more candidates before filtering for diversity
+    RETRIEVAL_K: int = 8          # Increased from 5 to 8
+    USE_MMR: bool = True          
+    MMR_FETCH_K: int = 30         # Increased from 20 to 30 (fetch more candidates to filter for diversity)
     
     # 🌟 Embedding Settings (Synced with ingestion + optimal dimension cache)
     EMBEDDING_MODEL: str = _ingestion_config.embedding_model
