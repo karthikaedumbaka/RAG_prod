@@ -72,7 +72,7 @@ def evaluate_dimension(dimension: int, chunks, config, questions) -> dict:
     finally:
         # 4. GUARANTEED CLEANUP (Crucial for Prod)
         if index_name in pc.list_indexes().names():
-            print(f"   🧹 Cleaning up temporary index '{index_name}'...")
+            print(f"    Cleaning up temporary index '{index_name}'...")
             pc.delete_index(index_name)
 
 def find_best_dimension(config, chunks, questions) -> int:

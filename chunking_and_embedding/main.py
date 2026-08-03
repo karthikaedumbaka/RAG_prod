@@ -58,7 +58,7 @@ def authenticate_user() -> str:
     Auto-creates DB, logs in existing users, or registers new users.
     """
     print("=" * 50)
-    print("🔐 USER AUTHENTICATION")
+    print(" USER AUTHENTICATION")
     print("=" * 50)
     try:
         user_id = input("Enter User ID: ").strip()
@@ -74,15 +74,15 @@ def authenticate_user() -> str:
 
     auth_status = authenticate_or_register(user_id, password)
     if auth_status == "authenticated":
-        print(f"✅ Authentication successful. Welcome back, {user_id}!")
+        print(f" Authentication successful. Welcome back, {user_id}!")
         return user_id
     elif auth_status == "registered":
-        print(f"🎉 New user detected. Account created successfully. Welcome, {user_id}!")
+        print(f" New user detected. Account created successfully. Welcome, {user_id}!")
         return user_id
     else:
-        print(f"❌ Authentication failed for user '{user_id}'. Incorrect password.")
+        print(f" Authentication failed for user '{user_id}'. Incorrect password.")
         unique_id = f"guest_{uuid.uuid4().hex[:8]}"
-        print(f"👤 Assigned unique guest ID: {unique_id}")
+        print(f" Assigned unique guest ID: {unique_id}")
         return unique_id
 
 # ==============================================================================
@@ -93,7 +93,7 @@ def process_single_pdf(pdf_path: Path, config: PDFIngestionConfig) -> dict:
     log = setup_logger("main", config.user_id)
     pdf_name = pdf_path.stem
     log.info("=" * 60)
-    log.info(f"📄 Processing: {pdf_path.name}")
+    log.info(f" Processing: {pdf_path.name}")
     log.info("=" * 60)
     start_time = time.time()
     try:
@@ -109,9 +109,9 @@ def process_single_pdf(pdf_path: Path, config: PDFIngestionConfig) -> dict:
             
         elapsed = time.time() - start_time
         pages_per_sec = analysis["total_pages"] / elapsed if elapsed > 0 else 0
-        log.info(f"✅ Completed {pdf_path.name}")
-        log.info(f"⏱️ Time: {elapsed:.2f}s | 🚀 Speed: {pages_per_sec:.2f} pages/sec")
-        log.info(f"📁 Output: {final_md}")
+        log.info(f" Completed {pdf_path.name}")
+        log.info(f"⏱️ Time: {elapsed:.2f}s |  Speed: {pages_per_sec:.2f} pages/sec")
+        log.info(f" Output: {final_md}")
         return {
             "pdf": str(pdf_path),
             "pages": analysis["total_pages"],
@@ -121,7 +121,7 @@ def process_single_pdf(pdf_path: Path, config: PDFIngestionConfig) -> dict:
             "status": "success"
         }
     except Exception as e:
-        log.exception(f"💥 Critical failure processing {pdf_path.name}: {e}")
+        log.exception(f" Critical failure processing {pdf_path.name}: {e}")
         return {"pdf": str(pdf_path), "status": "failed", "error": str(e)}
 
 def run_pdf_ingestion_pipeline(user_id: str):
@@ -135,19 +135,19 @@ def run_pdf_ingestion_pipeline(user_id: str):
     
     log = setup_logger("main", config.user_id)
     log.info("=" * 60)
-    log.info("🚀 PDF INGESTION PIPELINE STARTING")
+    log.info(" PDF INGESTION PIPELINE STARTING")
     log.info("=" * 60)
-    log.info(f"📂 Data directory: {config.data_dir}")
-    log.info(f"📁 Output directory: {config.output_dir}")
-    log.info(f"⚙️ Workers: {config.num_workers} | GPU: {config.use_gpu}")
+    log.info(f" Data directory: {config.data_dir}")
+    log.info(f" Output directory: {config.output_dir}")
+    log.info(f"️ Workers: {config.num_workers} | GPU: {config.use_gpu}")
     
     pdf_files = find_pdfs(config.data_dir)
     if not pdf_files:
-        log.error(f"❌ No PDFs found in {config.data_dir}")
-        log.info("💡 Tip: Place your PDFs in the 'data/' folder and run again.")
+        log.error(f" No PDFs found in {config.data_dir}")
+        log.info(" Tip: Place your PDFs in the 'data/' folder and run again.")
         return []
         
-    log.info(f"📄 Found {len(pdf_files)} PDF(s) to process")
+    log.info(f" Found {len(pdf_files)} PDF(s) to process")
     results = []
     for pdf_path in pdf_files:
         result = process_single_pdf(pdf_path, config)
@@ -160,13 +160,13 @@ def run_pdf_ingestion_pipeline(user_id: str):
     overall_speed = total_pages / total_time if total_time > 0 else 0
     
     log.info("=" * 60)
-    log.info("✅ PDF INGESTION PIPELINE COMPLETE")
+    log.info(" PDF INGESTION PIPELINE COMPLETE")
     log.info("=" * 60)
-    log.info(f"📊 PDFs processed: {successful}/{len(pdf_files)}")
-    log.info(f"❌ Failed: {failed}")
-    log.info(f"📄 Total pages: {total_pages}")
+    log.info(f" PDFs processed: {successful}/{len(pdf_files)}")
+    log.info(f" Failed: {failed}")
+    log.info(f" Total pages: {total_pages}")
     log.info(f"⏱️ Total time: {total_time:.2f}s")
-    log.info(f"🚀 Overall speed: {overall_speed:.2f} pages/sec")
+    log.info(f" Overall speed: {overall_speed:.2f} pages/sec")
     log.info("=" * 60)
     return results
 
@@ -177,44 +177,44 @@ def run_chunking_embedding_pipeline(user_id: str = "unknown"):
     """Run the chunking and embedding pipeline with automatic dimension tuning."""
     log = setup_logger("combined_pipeline", user_id)
     log.info("=" * 60)
-    log.info("🧠 CHUNKING & EMBEDDING PIPELINE STARTING")
+    log.info(" CHUNKING & EMBEDDING PIPELINE STARTING")
     log.info("=" * 60)
     config = ChunkingEmbeddingConfig()
     start_time = time.time()
 
     # Step 1: Load markdown files
-    log.info("📂 Loading processed markdown files...")
+    log.info(" Loading processed markdown files...")
     docs = load_markdown_files(config.input_dir)
     if not docs:
-        log.error(f"❌ No markdown files found in {config.input_dir}")
+        log.error(f" No markdown files found in {config.input_dir}")
         return
-    log.info(f"✅ Loaded {len(docs)} document(s)")
+    log.info(f" Loaded {len(docs)} document(s)")
 
     # Step 2: Chunk documents
-    log.info("🔪 Chunking documents...")
+    log.info(" Chunking documents...")
     chunks = chunk_documents(
         docs, 
         chunk_size=config.chunk_size, 
         chunk_overlap=config.chunk_overlap, 
         separators=config.separators
     )
-    log.info(f"✅ Created {len(chunks)} chunks")
+    log.info(f" Created {len(chunks)} chunks")
 
-    # 🌟 Step 3: AUTOMATIC DIMENSION EVALUATION
+    #  Step 3: AUTOMATIC DIMENSION EVALUATION
     if getattr(config, 'auto_evaluate_dimensions', True):
-        log.info("🔬 Determining optimal embedding dimension...")
+        log.info(" Determining optimal embedding dimension...")
         # Pass a subset of chunks (max 500) to speed up the evaluation process
         eval_chunks = chunks[:500] if len(chunks) > 500 else chunks
         optimal_dim = find_optimal_dimension(config, eval_chunks)
         
         # Override config with the mathematically proven best dimension
         config.embedding_dimension = optimal_dim
-        log.info(f"🎯 Final Vector DB will use dimension: {optimal_dim}")
+        log.info(f" Final Vector DB will use dimension: {optimal_dim}")
     else:
         log.info(f"⏭️ Auto-evaluation disabled. Using default dimension: {config.embedding_dimension}")
 
     # Step 4: Create embedder with the OPTIMAL dimension
-    log.info(f"🧠 Creating embedder (Target Dim={config.embedding_dimension})...")
+    log.info(f" Creating embedder (Target Dim={config.embedding_dimension})...")
     embedder = create_embedder(
         model=config.embedding_model, 
         output_dimensionality=config.embedding_dimension
@@ -227,7 +227,7 @@ def run_chunking_embedding_pipeline(user_id: str = "unknown"):
         embedding_dimension = config.embedding_dimension
 
     # Step 5: Initialize final vector DB index
-    log.info("🌲 Initializing final Pinecone vector database...")
+    log.info(" Initializing final Pinecone vector database...")
     init_pinecone_index(
         api_key=config.pinecone_api_key, 
         index_name=config.pinecone_index_name,
@@ -237,7 +237,7 @@ def run_chunking_embedding_pipeline(user_id: str = "unknown"):
     )
 
     # Step 6: Store chunks in final vector DB
-    log.info("📤 Storing chunks in final vector database...")
+    log.info(" Storing chunks in final vector database...")
     store_in_pinecone(
         chunks=chunks, 
         embedder=embedder, 
@@ -247,11 +247,11 @@ def run_chunking_embedding_pipeline(user_id: str = "unknown"):
 
     elapsed = time.time() - start_time
     log.info("=" * 60)
-    log.info("✅ CHUNKING & EMBEDDING PIPELINE COMPLETE")
+    log.info(" CHUNKING & EMBEDDING PIPELINE COMPLETE")
     log.info("=" * 60)
-    log.info(f"📊 Documents processed: {len(docs)}")
-    log.info(f"🔪 Chunks created: {len(chunks)}")
-    log.info(f"🎯 Optimal Dimension Used: {embedding_dimension}")
+    log.info(f" Documents processed: {len(docs)}")
+    log.info(f" Chunks created: {len(chunks)}")
+    log.info(f" Optimal Dimension Used: {embedding_dimension}")
     log.info(f"⏱️ Total time: {elapsed:.2f}s")
     log.info("=" * 60)
 
@@ -261,7 +261,7 @@ def run_chunking_embedding_pipeline(user_id: str = "unknown"):
 def run_combined_pipeline():
     """Run the entire combined pipeline: Auth -> PDF Ingestion -> Chunking & Embedding."""
     print("=" * 60)
-    print("🌟 COMBINED RAG PIPELINE STARTING")
+    print(" COMBINED RAG PIPELINE STARTING")
     print("=" * 60)
 
     # Step 1: Authenticate user
@@ -273,14 +273,14 @@ def run_combined_pipeline():
     # Check if any PDFs were processed successfully
     successful_pdfs = [r for r in pdf_results if r.get("status") == "success"]
     if not successful_pdfs:
-        print("⚠️ No PDFs processed successfully, skipping chunking and embedding.")
+        print("️ No PDFs processed successfully, skipping chunking and embedding.")
         return
 
     # Step 3: Run chunking and embedding
     run_chunking_embedding_pipeline(user_id)
 
     print("=" * 60)
-    print("🎉 COMBINED RAG PIPELINE COMPLETE")
+    print(" COMBINED RAG PIPELINE COMPLETE")
     print("=" * 60)
 
 if __name__ == "__main__":

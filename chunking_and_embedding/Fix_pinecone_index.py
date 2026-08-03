@@ -89,7 +89,7 @@ def list_and_delete_dynamically():
 def main_menu():
     """Display the main interactive menu."""
     print("=" * 60)
-    print("🌲 PINECONE INDEX MANAGER")
+    print(" PINECONE INDEX MANAGER")
     print("=" * 60)
     print(f"Default Index (from .env): {DEFAULT_INDEX_NAME}")
     print("-" * 60)

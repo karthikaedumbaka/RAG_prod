@@ -35,7 +35,7 @@ def init_pinecone_index(api_key: str, index_name: str, cloud: str = "aws", regio
     """
     pc = Pinecone(api_key=api_key)
     if index_name not in pc.list_indexes().names():
-        logger.info(f"🏗️ Creating new Pinecone index '{index_name}' (dim={dimension})...")
+        logger.info(f"️ Creating new Pinecone index '{index_name}' (dim={dimension})...")
         pc.create_index(name=index_name, dimension=dimension, metric="cosine", spec=ServerlessSpec(cloud=cloud, region=region))
     else:
         try:
@@ -101,7 +101,7 @@ def store_in_pinecone_resumable(
     Returns:
         The initialized PineconeVectorStore.
     """
-    logger.info(f"📤 Starting resumable Pinecone upsert for {len(chunks)} chunks...")
+    logger.info(f" Starting resumable Pinecone upsert for {len(chunks)} chunks...")
     start_time = time.time()
     
     vector_store = PineconeVectorStore(embedding=embedder, index_name=index_name, pinecone_api_key=api_key)
@@ -110,7 +110,7 @@ def store_in_pinecone_resumable(
     completed = _load_checkpoint(Path(checkpoint_path)) if checkpoint_path else set()
     
     if completed:
-        logger.info(f"🔄 Resuming from checkpoint: {len(completed)}/{total} batches already stored")
+        logger.info(f" Resuming from checkpoint: {len(completed)}/{total} batches already stored")
 
     @retry(
         retry=retry_if_exception(_is_rate_limit_error), stop=stop_after_attempt(8),
@@ -134,7 +134,7 @@ def store_in_pinecone_resumable(
         if i in completed:
             continue
             
-        logger.info(f"📦 Batch {i + 1}/{total} ({len(batch)} chunks)...")
+        logger.info(f" Batch {i + 1}/{total} ({len(batch)} chunks)...")
         _add_batch_with_retry(batch, pacing_state)
         completed.add(i)
         
@@ -143,7 +143,7 @@ def store_in_pinecone_resumable(
             
         if i < total - 1:
             if pacing_state["hit_limit"]:
-                logger.info(f"🐢 Pacing up: waiting {pacing_state['delay']:.0f}s before next batch (adaptive backoff)...")
+                logger.info(f" Pacing up: waiting {pacing_state['delay']:.0f}s before next batch (adaptive backoff)...")
             time.sleep(pacing_state["delay"])
 
     if checkpoint_path:
@@ -151,6 +151,6 @@ def store_in_pinecone_resumable(
         
     elapsed = time.time() - start_time
     chunks_per_sec = len(chunks) / elapsed if elapsed > 0 else 0
-    logger.info(f"✅ Upsert complete in {elapsed:.2f}s ({chunks_per_sec:.1f} chunks/sec)")
+    logger.info(f" Upsert complete in {elapsed:.2f}s ({chunks_per_sec:.1f} chunks/sec)")
     
     return vector_store

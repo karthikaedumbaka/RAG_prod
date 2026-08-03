@@ -21,7 +21,7 @@ class ChunkingEmbeddingConfig:
     embedding_model: str = "nomic-ai/nomic-embed-text-v1.5"
     embedding_dimension: int = 768  # Fallback if auto-eval is disabled
     
-    # 🌟 NEW: Auto-evaluation toggle
+    #  NEW: Auto-evaluation toggle
     auto_evaluate_dimensions: bool = True 
     
     # Vector database settings

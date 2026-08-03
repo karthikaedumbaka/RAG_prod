@@ -128,7 +128,7 @@ def analyze_pdf(pdf_path: str, config: PipelineConfig) -> dict:
     # can still be dominated by a pie chart, bar chart, or table that plain
     # text extraction would silently drop.
     log = setup_logger("analyzer", config.user_id)
-    log.info(f"🔍 Analyzing {Path(pdf_path).name}...")
+    log.info(f" Analyzing {Path(pdf_path).name}...")
     start_time = time.time()
     
     doc = fitz.open(pdf_path)
@@ -139,7 +139,7 @@ def analyze_pdf(pdf_path: str, config: PipelineConfig) -> dict:
     
     template_xrefs = _find_template_image_xrefs(doc, config)
     if template_xrefs:
-        log.info(f"   🖼️ Detected {len(template_xrefs)} repeating template image(s) (logos/banners) - excluded from visual detection")
+        log.info(f"   ️ Detected {len(template_xrefs)} repeating template image(s) (logos/banners) - excluded from visual detection")
 
     # Classify every page
     for page_num in range(total_pages):
@@ -181,7 +181,7 @@ def analyze_pdf(pdf_path: str, config: PipelineConfig) -> dict:
         "ocr_percentage": (len(ocr_pages) / total_pages * 100) if total_pages > 0 else 0
     }
     
-    log.info(f"✅ Analysis complete in {elapsed:.2f}s:")
+    log.info(f" Analysis complete in {elapsed:.2f}s:")
     log.info(f"   Total pages: {total_pages}")
     log.info(f"   Text pages: {len(text_pages)} ({100 - analysis['ocr_percentage']:.1f}%)")
     log.info(f"   OCR needed: {len(ocr_pages)} ({analysis['ocr_percentage']:.1f}%)")
@@ -205,7 +205,7 @@ def create_smart_batches(pdf_path: str, analysis: dict, config: PipelineConfig) 
     # Text pages can be processed in larger batches (faster).
     # OCR pages need smaller batches (memory-intensive).
     log = setup_logger("batcher", config.user_id)
-    log.info("📦 Creating smart batches...")
+    log.info(" Creating smart batches...")
     start_time = time.time()
     
     try:
@@ -243,5 +243,5 @@ def create_smart_batches(pdf_path: str, analysis: dict, config: PipelineConfig) 
 
     doc.close()
     elapsed = time.time() - start_time
-    log.info(f"✅ Created {len(batches['text_batches'])} text batches & {len(batches['ocr_batches'])} OCR batches in {elapsed:.2f}s")
+    log.info(f" Created {len(batches['text_batches'])} text batches & {len(batches['ocr_batches'])} OCR batches in {elapsed:.2f}s")
     return batches

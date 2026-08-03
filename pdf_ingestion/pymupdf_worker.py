@@ -34,7 +34,7 @@ def process_text_batch(batch_info: dict, output_dir: str, user_id: str = "unknow
     log = setup_logger(f"pymupdf-{batch_name}", user_id)
     
     try:
-        # 🛠️ FIX: Use context manager to prevent file handle leaks
+        # ️ FIX: Use context manager to prevent file handle leaks
         with fitz.open(batch_path) as doc:
             markdown_content = []
             

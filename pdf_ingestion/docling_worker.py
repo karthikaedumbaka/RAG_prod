@@ -20,7 +20,7 @@ try:
 except ImportError:
     from logger import setup_logger
 
-# 🛠️ FIX: Global variable to hold the converter per worker process
+# ️ FIX: Global variable to hold the converter per worker process
 _worker_converter = None
 _worker_log = None
 
@@ -113,10 +113,10 @@ def process_batch(batch_info: dict, output_dir: str, config_dict: dict):
     try:
         full_markdown = []
         
-        # 🛠️ FIX: Use context manager for the main batch document
+        # ️ FIX: Use context manager for the main batch document
         with fitz.open(batch_path) as batch_doc:
             for local_idx, original_page_num in enumerate(batch_info["pages"]):
-                # 🛠️ FIX: Use context manager for single page doc
+                # ️ FIX: Use context manager for single page doc
                 with fitz.open() as single_page_doc:
                     single_page_doc.insert_pdf(batch_doc, from_page=local_idx, to_page=local_idx)
                     

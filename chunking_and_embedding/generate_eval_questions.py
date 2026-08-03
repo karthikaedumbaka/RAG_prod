@@ -50,9 +50,9 @@ def generate_questions_with_kimi(input_dir: str, output_path: Path, num_question
     """
     md_files = list(Path(input_dir).glob("*.md"))
     if not md_files:
-        raise FileNotFoundError(f"❌ No .md files found in {input_dir}")
+        raise FileNotFoundError(f" No .md files found in {input_dir}")
         
-    print(f"📄 Found {len(md_files)} markdown file(s). Generating questions via LLM...")
+    print(f" Found {len(md_files)} markdown file(s). Generating questions via LLM...")
     all_questions = []
     
     for md_file in md_files:
@@ -85,16 +85,16 @@ Text snippet:
                 all_questions.extend(data["questions"])
             elif isinstance(data, list):
                 all_questions.extend(data)
-            print(f"   ✅ {md_file.name}: Generated {num_questions_per_file} questions.")
+            print(f"    {md_file.name}: Generated {num_questions_per_file} questions.")
         except Exception as e:
-            print(f"   ⚠️ Error generating questions for {md_file.name}: {e}")
+            print(f"   ️ Error generating questions for {md_file.name}: {e}")
             
     # Save to disk
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(all_questions, f, indent=2, ensure_ascii=False)
         
-    print(f"\n🎉 Successfully generated {len(all_questions)} questions and saved to {output_path.name}")
+    print(f"\n Successfully generated {len(all_questions)} questions and saved to {output_path.name}")
     return all_questions
 
 def main():

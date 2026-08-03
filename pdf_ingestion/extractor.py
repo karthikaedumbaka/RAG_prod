@@ -25,7 +25,7 @@ def extract_batches(batches: dict, config: PipelineConfig):
         config: Pipeline configuration.
     """
     log = setup_logger("extractor", config.user_id)
-    log.info("🚀 Starting batch extraction...")
+    log.info(" Starting batch extraction...")
     start_time = time.time()
     
     ctx = mp.get_context('spawn')
@@ -44,14 +44,14 @@ def extract_batches(batches: dict, config: PipelineConfig):
     total_pending = len(pending_text) + len(pending_ocr)
     
     if total_pending == 0:
-        log.info("✅ All batches already completed (Resumed from checkpoint).")
+        log.info(" All batches already completed (Resumed from checkpoint).")
         return
 
     log.info(f"Dispatching {len(pending_text)} Text batches (Threads) & {len(pending_ocr)} OCR batches (Processes)")
     futures = {}
 
     # 1. Process Text Batches (I/O Bound -> Threads)
-    log.info(f"🧵 Starting ThreadPoolExecutor with {config.num_text_threads} workers for text...")
+    log.info(f" Starting ThreadPoolExecutor with {config.num_text_threads} workers for text...")
     with ThreadPoolExecutor(max_workers=config.num_text_threads) as text_exec:
         for batch in pending_text:
             f = text_exec.submit(process_text_batch, batch, config.output_dir, config.user_id)
@@ -67,13 +67,13 @@ def extract_batches(batches: dict, config: PipelineConfig):
                     text_completed += 1
                     log.debug(f"Text batch {text_completed}/{len(pending_text)} completed.")
             except Exception as e:
-                log.exception(f"❌ Text batch {batch['path']} failed: {e}")
+                log.exception(f" Text batch {batch['path']} failed: {e}")
     futures.clear()
 
     # 2. Process OCR Batches (CPU/GPU Bound -> Processes)
     if pending_ocr:
-        log.info(f"⚙️ Starting ProcessPoolExecutor with {config.num_workers} workers for OCR...")
-        # 🛠️ FIX: Pass initializer and initargs to load models ONCE per worker
+        log.info(f"️ Starting ProcessPoolExecutor with {config.num_workers} workers for OCR...")
+        # ️ FIX: Pass initializer and initargs to load models ONCE per worker
         with ProcessPoolExecutor(
             max_workers=config.num_workers, 
             mp_context=ctx,
@@ -92,11 +92,11 @@ def extract_batches(batches: dict, config: PipelineConfig):
                     ocr_completed += 1
                     if res["status"] == "success":
                         checkpoint.mark_completed(res["batch"])
-                        log.info(f"📊 OCR Progress: {ocr_completed}/{len(pending_ocr)}")
+                        log.info(f" OCR Progress: {ocr_completed}/{len(pending_ocr)}")
                     else:
-                        log.error(f"❌ OCR batch {batch['path']} failed: {res.get('error')}")
+                        log.error(f" OCR batch {batch['path']} failed: {res.get('error')}")
                 except Exception as e:
-                    log.exception(f"💥 OCR worker crashed on {batch['path']}: {e}")
+                    log.exception(f" OCR worker crashed on {batch['path']}: {e}")
                     
     elapsed = time.time() - start_time
-    log.info(f"✅ Extraction complete in {elapsed:.2f}s")
+    log.info(f" Extraction complete in {elapsed:.2f}s")

@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 # ==============================================================================
-# 🌟 AUTO-SYNC: Import settings directly from the ingestion pipeline
+#  AUTO-SYNC: Import settings directly from the ingestion pipeline
 # ==============================================================================
 from chunking_and_embedding.config import ChunkingEmbeddingConfig
 _ingestion_config = ChunkingEmbeddingConfig()
@@ -33,11 +33,11 @@ else:
 # QUERY CONFIGURATION
 # ==============================================================================
 class QueryConfig:
-    # 🌟 Pinecone Settings (Automatically synced with the ingestion pipeline!)
+    #  Pinecone Settings (Automatically synced with the ingestion pipeline!)
     PINECONE_API_KEY: str = _ingestion_config.pinecone_api_key
     PINECONE_INDEX_NAME: str = _ingestion_config.pinecone_index_name
     
-    # 🚀 LLM Settings (Using Groq for ultra-fast, free inference)
+    #  LLM Settings (Using Groq for ultra-fast, free inference)
     LLM_API_KEY: str = os.getenv("LLM_API_KEY")
     LLM_BASE_URL: str = "https://api.groq.com/openai/v1"
     LLM_MODEL: str = "llama-3.3-70b-versatile" 
@@ -47,11 +47,11 @@ class QueryConfig:
     USE_MMR: bool = True          
     MMR_FETCH_K: int = 30         # Increased from 20 to 30 (fetch more candidates to filter for diversity)
     
-    # 🌟 Embedding Settings (Synced with ingestion + optimal dimension cache)
+    #  Embedding Settings (Synced with ingestion + optimal dimension cache)
     EMBEDDING_MODEL: str = _ingestion_config.embedding_model
     EMBEDDING_DIMENSION: int = OPTIMAL_DIM
     
-    # 🌟 Local paths for BM25 Hybrid Search
+    #  Local paths for BM25 Hybrid Search
     INPUT_DIR: str = _ingestion_config.input_dir
     CHUNK_SIZE: int = _ingestion_config.chunk_size
     CHUNK_OVERLAP: int = _ingestion_config.chunk_overlap

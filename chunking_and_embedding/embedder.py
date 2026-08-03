@@ -61,7 +61,7 @@ def create_embedder(
     import torch
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
-    log.info(f"🧠 Loading local embedding model '{model}' on {device.upper()} (Target Dim={output_dimensionality})...")
+    log.info(f" Loading local embedding model '{model}' on {device.upper()} (Target Dim={output_dimensionality})...")
     start_time = time.time()
     
     model_kwargs = {
@@ -75,7 +75,7 @@ def create_embedder(
     )
     
     elapsed = time.time() - start_time
-    log.info(f"✅ Model loaded in {elapsed:.2f}s")
+    log.info(f" Model loaded in {elapsed:.2f}s")
     
     if output_dimensionality < 768:
         log.info(f"   -> Applying Matryoshka truncation to {output_dimensionality} dimensions...")

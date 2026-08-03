@@ -37,7 +37,7 @@ def load_markdown_files(input_dir: str) -> List[Document]:
         with open(md_file, "r", encoding="utf-8") as f:
             raw_content = f.read()
             
-        # 🧹 CLEAN THE TEXT BEFORE CHUNKING
+        #  CLEAN THE TEXT BEFORE CHUNKING
         clean_content = clean_markdown_text(raw_content)
         
         # Skip files that are completely empty after cleaning
@@ -55,15 +55,15 @@ def extract_and_clean_page_metadata(chunks: List[Document]) -> List[Document]:
     Extracts [PAGE:X] markers from chunk content, adds them to metadata,
     and removes the markers from the final text so the LLM gets clean data.
     """
-    # 🛠️ FIX: Escape the square brackets so regex treats them as literal text
+    # ️ FIX: Escape the square brackets so regex treats them as literal text
     page_pattern = re.compile(r'\[PAGE:(\d+)\]') 
     
     for chunk in chunks:
          pages = page_pattern.findall(chunk.page_content)
          if pages:
              unique_pages = sorted(list(set(int(p) for p in pages)))
-             chunk.metadata["page"] = unique_pages[0]          # Single integer ✅
-             chunk.metadata["pages"] = [str(p) for p in unique_pages]  # List of strings ✅
+             chunk.metadata["page"] = unique_pages[0]          # Single integer 
+             chunk.metadata["pages"] = [str(p) for p in unique_pages]  # List of strings 
              chunk.page_content = page_pattern.sub('', chunk.page_content).strip()
          else:
              chunk.metadata.pop("page", None)

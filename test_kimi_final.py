@@ -5,10 +5,10 @@ from openai import OpenAI
 api_key = os.environ.get("MOONSHOT_API_KEY")
 
 if not api_key:
-    print("❌ ERROR: 'MOONSHOT_API_KEY' environment variable is not set!")
-    print("💡 Fix: Make sure you ran 'set MOONSHOT_API_KEY=your_key' or it's in your .env file.")
+    print(" ERROR: 'MOONSHOT_API_KEY' environment variable is not set!")
+    print(" Fix: Make sure you ran 'set MOONSHOT_API_KEY=your_key' or it's in your .env file.")
 else:
-    print("✅ API Key found. Testing connection to Moonshot API...")
+    print(" API Key found. Testing connection to Moonshot API...")
     
     # 2. Initialize client with the official base URL
     client = OpenAI(
@@ -25,9 +25,9 @@ else:
                 {"role": "user", "content": "Hello, my name is Li Lei. What is 1+1?"}
             ],
         )
-        print("\n🎉 SUCCESS! The API is working perfectly.")
-        print("🤖 Kimi's Response:", completion.choices[0].message.content)
+        print("\n SUCCESS! The API is working perfectly.")
+        print(" Kimi's Response:", completion.choices[0].message.content)
         
     except Exception as e:
-        print("\n❌ FAILED:", e)
-        print("💡 If this says '401 Invalid Authentication', your API key is incorrect, revoked, or you need to add a small balance to your Moonshot account.")
+        print("\n FAILED:", e)
+        print(" If this says '401 Invalid Authentication', your API key is incorrect, revoked, or you need to add a small balance to your Moonshot account.")

@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import List, Dict
 
-# 🌟 UPDATED PATH LOGIC: Go up two levels (evaluation -> git_rag)
+#  UPDATED PATH LOGIC: Go up two levels (evaluation -> git_rag)
 PROJECT_ROOT = Path(__file__).parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -19,7 +19,7 @@ EVAL_QUESTIONS_PATH = PROJECT_ROOT / "chunking_and_embedding" / "EvalQuestions.j
 def load_eval_questions() -> List[Dict]:
     """Load the ground-truth Q&A dataset."""
     if not EVAL_QUESTIONS_PATH.exists():
-        print(f"❌ Error: {EVAL_QUESTIONS_PATH} not found.")
+        print(f" Error: {EVAL_QUESTIONS_PATH} not found.")
         sys.exit(1)
     with open(EVAL_QUESTIONS_PATH, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -79,22 +79,22 @@ Output STRICTLY in this JSON format:
 
 def main():
     print("=" * 70)
-    print("🚀 END-TO-END RAG EVALUATION STARTING")
+    print(" END-TO-END RAG EVALUATION STARTING")
     print("=" * 70)
     
     config = QueryConfig()
     if not config.LLM_API_KEY:
-        print("❌ Error: LLM_API_KEY (GROQ_API_KEY) missing in .env")
+        print(" Error: LLM_API_KEY (GROQ_API_KEY) missing in .env")
         return
 
     questions = load_eval_questions()
-    print(f"📊 Loaded {len(questions)} evaluation questions.\n")
+    print(f" Loaded {len(questions)} evaluation questions.\n")
 
     # Initialize components ONCE
-    print("🏗️ Initializing Hybrid Retriever and LLM Judge...")
+    print("️ Initializing Hybrid Retriever and LLM Judge...")
     retriever = get_hybrid_retriever(config)
     llm = get_llm(config)
-    print("✅ Ready!\n")
+    print(" Ready!\n")
 
     # Metrics tracking
     total_hit_source = 0
@@ -128,23 +128,23 @@ def main():
         total_faithfulness += judge_metrics.get("faithfulness_score", 0)
         total_relevance += judge_metrics.get("relevance_score", 0)
         
-        print(f"   ↳ Retrieval: Source={'✅' if ret_metrics['hit_source'] else '❌'} | Snippet={'✅' if ret_metrics['hit_snippet'] else '❌'} (Rank: {ret_metrics['rank']})")
+        print(f"   ↳ Retrieval: Source={'' if ret_metrics['hit_source'] else ''} | Snippet={'' if ret_metrics['hit_snippet'] else ''} (Rank: {ret_metrics['rank']})")
         print(f"   ↳ Generation: Faithfulness={judge_metrics.get('faithfulness_score', 'N/A')}/5 | Relevance={judge_metrics.get('relevance_score', 'N/A')}/5")
         print(f"   ↳ Judge Reasoning: {judge_metrics.get('reasoning', 'N/A')}\n")
 
     # FINAL SCORECARD
     n = len(questions)
     print("=" * 70)
-    print("🏆 FINAL EVALUATION SCORECARD")
+    print(" FINAL EVALUATION SCORECARD")
     print("=" * 70)
-    print(f"📚 Total Questions Evaluated: {n}")
+    print(f" Total Questions Evaluated: {n}")
     print("-" * 70)
-    print("🔍 RETRIEVAL METRICS:")
+    print(" RETRIEVAL METRICS:")
     print(f"   • Source Hit Rate (Recall@5):  {(total_hit_source / n) * 100:.1f}%")
     print(f"   • Snippet Hit Rate:            {(total_hit_snippet / n) * 100:.1f}%")
     print(f"   • Mean Reciprocal Rank (MRR):  {total_mrr / n:.3f}")
     print("-" * 70)
-    print("🧠 GENERATION METRICS (LLM-as-a-Judge):")
+    print(" GENERATION METRICS (LLM-as-a-Judge):")
     print(f"   • Average Faithfulness:        {total_faithfulness / n:.2f} / 5.0")
     print(f"   • Average Relevance:           {total_relevance / n:.2f} / 5.0")
     print("=" * 70)

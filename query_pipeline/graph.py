@@ -124,7 +124,7 @@ def get_hybrid_retriever(config: QueryConfig):
     chunks = chunk_documents(docs, chunk_size=config.CHUNK_SIZE, chunk_overlap=config.CHUNK_OVERLAP)
     
     if not chunks:
-        print("⚠️ Warning: No local markdown files found for BM25. Falling back to Dense-only retrieval.")
+        print("️ Warning: No local markdown files found for BM25. Falling back to Dense-only retrieval.")
         return dense_retriever
         
     # 3. Return our Custom RRF Hybrid Retriever
@@ -139,7 +139,7 @@ def get_hybrid_retriever(config: QueryConfig):
 # ==============================================================================
 def retrieve_node(state: GraphState, config: QueryConfig):
     """Node 1: Retrieve relevant documents using Custom Hybrid Search."""
-    print("🔍 [Graph] Retrieving context via Custom Hybrid Search (RRF: BM25 + Pinecone)...")
+    print(" [Graph] Retrieving context via Custom Hybrid Search (RRF: BM25 + Pinecone)...")
     retriever = get_hybrid_retriever(config)
     question = state["question"]
     
@@ -148,7 +148,7 @@ def retrieve_node(state: GraphState, config: QueryConfig):
 
 def generate_node(state: GraphState, config: QueryConfig):
     """Node 2: Generate an answer using the LLM and retrieved context."""
-    print("🧠 [Graph] Generating answer via Groq LLM...")
+    print(" [Graph] Generating answer via Groq LLM...")
     llm = get_llm(config)
     
     # Format the context with source citations
@@ -185,7 +185,7 @@ def generate_node(state: GraphState, config: QueryConfig):
 
 def format_sources_node(state: GraphState, config: QueryConfig):
     """Node 3: Extract and format metadata for the UI/CLI to display."""
-    print("📑 [Graph] Formatting source citations...")
+    print(" [Graph] Formatting source citations...")
     sources = []
     seen = set()
     
